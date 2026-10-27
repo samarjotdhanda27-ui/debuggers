@@ -521,10 +521,10 @@ fun MaterialListingCard(
 @Composable
 fun RequestQuoteBottomSheet(
     material: MaterialItem,
-    sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     onDismiss: () -> Unit,
     onSubmit: (quantity: Double, city: String, contact: String, message: String) -> Unit
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var quantityText by remember { mutableStateOf(material.quantityTonnes.toInt().toString()) }
     var destinationCity by remember { mutableStateOf("") }
     var contactInfo by remember { mutableStateOf("") }

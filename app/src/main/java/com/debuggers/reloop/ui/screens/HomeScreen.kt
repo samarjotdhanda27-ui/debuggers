@@ -26,6 +26,7 @@ import com.debuggers.reloop.data.repository.MaterialRepository
 import com.debuggers.reloop.ui.components.*
 import com.debuggers.reloop.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     materials: List<MaterialItem>,
@@ -46,7 +47,7 @@ fun HomeScreen(
     var quoteSubmittedNotice by remember { mutableStateOf<String?>(null) }
 
     val categories = listOf(
-        Pair("All", Icons.Default.AllInclusive),
+        Pair("All", Icons.Default.GridView),
         Pair("Minerals", Icons.Default.Factory),
         Pair("Metals", Icons.Default.PrecisionManufacturing),
         Pair("Construction", Icons.Default.Foundation),
@@ -156,58 +157,11 @@ fun HomeScreen(
 
             // Sleek B2B Action Bar (List Material / Post Demand)
             item {
-                Surface(
-                    color = Color.White,
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, ReLoopBorder),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(Icons.Default.Storefront, null, tint = BrandForest, modifier = Modifier.size(20.dp))
-                            Column {
-                                Text("Industrial Supplier Portal", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                                Text("List by-products or post procurement demand", fontSize = 11.sp, color = TextMuted)
-                            }
-                        }
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Button(
-                                onClick = onListMaterial,
-                                shape = RoundedCornerShape(6.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = BrandForest),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                modifier = Modifier.height(34.dp)
-                            ) {
-                                Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp), tint = Color.White)
-                                Spacer(Modifier.width(4.dp))
-                                Text("List", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
-                            }
-
-                            OutlinedButton(
-                                onClick = onPostRequirement,
-                                shape = RoundedCornerShape(6.dp),
-                                border = BorderStroke(1.dp, ReLoopBorder),
-                                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                modifier = Modifier.height(34.dp)
-                            ) {
-                                Text("Post Demand", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = TextDark)
-                            }
-                        }
-                    }
-                }
+                SupplierPortalCard(
+                    onListMaterial = onListMaterial,
+                    onPostDemand = onPostRequirement,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
             }
 
             // Section Header & Quick Filter Pills
@@ -313,17 +267,16 @@ fun HomeScreen(
                         MaterialListingCard(
                             item = item,
                             onClick = { onOpenMaterial(item) },
-                            onRequestQuote = { materialForQuote = item },
-                            onViewPassport = { onViewPassport(item) }
+                            onRequestQuote = { materialForQuote = item }
                         )
                     }
                 }
             }
         }
 
-        // Enquiry / Request Quote Modal Dialog
+        // Enquiry / Request Quote Modal Sheet
         materialForQuote?.let { mat ->
-            RequestQuoteDialog(
+            RequestQuoteBottomSheet(
                 material = mat,
                 onDismiss = { materialForQuote = null },
                 onSubmit = { qty, city, contact, message ->

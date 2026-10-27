@@ -25,9 +25,10 @@ import com.debuggers.reloop.data.model.MaterialItem
 import com.debuggers.reloop.data.repository.MaterialRepository
 import com.debuggers.reloop.ui.components.MarketplaceSearchBar
 import com.debuggers.reloop.ui.components.MaterialListingCard
-import com.debuggers.reloop.ui.components.RequestQuoteDialog
+import com.debuggers.reloop.ui.components.RequestQuoteBottomSheet
 import com.debuggers.reloop.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiscoverScreen(
     materials: List<MaterialItem>,
@@ -321,17 +322,16 @@ fun DiscoverScreen(
                         MaterialListingCard(
                             item = item,
                             onClick = { onOpenMaterial(item) },
-                            onRequestQuote = { materialForQuote = item },
-                            onViewPassport = { onViewPassport(item) }
+                            onRequestQuote = { materialForQuote = item }
                         )
                     }
                 }
             }
         }
 
-        // Enquiry / Request Quote Modal
+        // Enquiry / Request Quote Modal Bottom Sheet
         materialForQuote?.let { mat ->
-            RequestQuoteDialog(
+            RequestQuoteBottomSheet(
                 material = mat,
                 onDismiss = { materialForQuote = null },
                 onSubmit = { qty, city, contact, message ->

@@ -27,10 +27,11 @@ import androidx.compose.ui.unit.sp
 import com.debuggers.reloop.data.model.*
 import com.debuggers.reloop.data.repository.MaterialRepository
 import com.debuggers.reloop.ui.components.QrCodeView
-import com.debuggers.reloop.ui.components.RequestQuoteDialog
+import com.debuggers.reloop.ui.components.RequestQuoteBottomSheet
 import com.debuggers.reloop.ui.theme.*
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MaterialDetailScreen(
     item: MaterialItem,
@@ -248,9 +249,9 @@ fun MaterialDetailScreen(
             }
         }
 
-        // Enquiry / RFQ Modal
+        // Enquiry / RFQ Bottom Sheet
         if (showQuoteDialog) {
-            RequestQuoteDialog(
+            RequestQuoteBottomSheet(
                 material = item,
                 onDismiss = { showQuoteDialog = false },
                 onSubmit = { qty, city, contact, message ->
