@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -30,7 +32,21 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ReLoopTheme {
-                ReLoopAppRoot()
+                var showSplash by remember { mutableStateOf(true) }
+
+                Crossfade(
+                    targetState = showSplash,
+                    animationSpec = tween(durationMillis = 450),
+                    label = "AppEntranceCrossfade"
+                ) { isSplash ->
+                    if (isSplash) {
+                        ReLoopSplashScreen(
+                            onSplashFinished = { showSplash = false }
+                        )
+                    } else {
+                        ReLoopAppRoot()
+                    }
+                }
             }
         }
     }

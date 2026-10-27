@@ -135,21 +135,29 @@ fun MaterialDetailScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
+                    selectedContentColor = BrandPrimary,
+                    unselectedContentColor = TextMuted,
                     text = { Text("Product Details", fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
+                    selectedContentColor = BrandPrimary,
+                    unselectedContentColor = TextMuted,
                     text = { Text("Matching Buyers", fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp) }
                 )
                 Tab(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
+                    selectedContentColor = BrandPrimary,
+                    unselectedContentColor = TextMuted,
                     text = { Text("Reuse Pathways", fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp) }
                 )
                 Tab(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
+                    selectedContentColor = BrandPrimary,
+                    unselectedContentColor = TextMuted,
                     text = { Text("Material Passport", fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp) }
                 )
             }

@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.debuggers.reloop.data.repository.MaterialRepository
+import com.debuggers.reloop.ui.components.reloopTextFieldColors
 import com.debuggers.reloop.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -134,10 +135,11 @@ fun PostRequirementScreen(
                             buyerName = it
                             if (it.isNotBlank()) buyerError = null
                         },
-                        placeholder = { Text("e.g. Ambala Green Cement Works, Eco Pavers", fontSize = 13.sp) },
+                        placeholder = { Text("e.g. Ambala Green Cement Works, Eco Pavers", fontSize = 13.sp, color = TextMuted) },
                         isError = buyerError != null,
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
+                        colors = reloopTextFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
                     buyerError?.let { Text(it, color = AlertRed, fontSize = 11.sp) }
@@ -190,10 +192,11 @@ fun PostRequirementScreen(
                             requiredMaterial = it
                             if (it.isNotBlank()) materialError = null
                         },
-                        placeholder = { Text("e.g. Fly Ash, Used Foundry Sand, Steel Scrap", fontSize = 13.sp) },
+                        placeholder = { Text("e.g. Fly Ash, Used Foundry Sand, Steel Scrap", fontSize = 13.sp, color = TextMuted) },
                         isError = materialError != null,
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
+                        colors = reloopTextFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
                     materialError?.let { Text(it, color = AlertRed, fontSize = 11.sp) }
@@ -205,7 +208,19 @@ fun PostRequirementScreen(
                         commonFeedstocks.take(3).forEach { feed ->
                             AssistChip(
                                 onClick = { requiredMaterial = feed },
-                                label = { Text(feed, fontSize = 11.sp) }
+                                label = {
+                                    Text(
+                                        text = feed,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = TextDark
+                                    )
+                                },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = ReLoopSurfaceSubtle,
+                                    labelColor = TextDark
+                                ),
+                                border = BorderStroke(1.dp, ReLoopBorder)
                             )
                         }
                     }
@@ -217,11 +232,12 @@ fun PostRequirementScreen(
                             quantityText = it
                             if (it.toDoubleOrNull() != null) quantityError = null
                         },
-                        placeholder = { Text("e.g. 300", fontSize = 13.sp) },
+                        placeholder = { Text("e.g. 300", fontSize = 13.sp, color = TextMuted) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         isError = quantityError != null,
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
+                        colors = reloopTextFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
                     quantityError?.let { Text(it, color = AlertRed, fontSize = 11.sp) }
@@ -234,7 +250,7 @@ fun PostRequirementScreen(
                             shape = RoundedCornerShape(8.dp),
                             border = BorderStroke(1.dp, ReLoopBorder)
                         ) {
-                            Icon(Icons.Default.LocationOn, null, tint = BrandForest, modifier = Modifier.size(15.dp))
+                            Icon(Icons.Default.LocationOn, null, tint = BrandPrimary, modifier = Modifier.size(15.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(selectedCityKey, modifier = Modifier.weight(1f), color = TextDark, fontSize = 13.sp)
                             Icon(Icons.Default.ArrowDropDown, null, tint = TextMuted)
@@ -259,10 +275,11 @@ fun PostRequirementScreen(
                     OutlinedTextField(
                         value = maxMoistureText,
                         onValueChange = { maxMoistureText = it },
-                        placeholder = { Text("e.g. 5.0", fontSize = 13.sp) },
+                        placeholder = { Text("e.g. 5.0", fontSize = 13.sp, color = TextMuted) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
+                        colors = reloopTextFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

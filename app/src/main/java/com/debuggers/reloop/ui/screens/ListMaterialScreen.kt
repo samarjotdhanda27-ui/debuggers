@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.debuggers.reloop.data.repository.MaterialRepository
+import com.debuggers.reloop.ui.components.reloopTextFieldColors
 import com.debuggers.reloop.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -135,10 +136,11 @@ fun ListMaterialScreen(
                             materialName = it
                             if (it.isNotBlank()) materialError = null
                         },
-                        placeholder = { Text("e.g. High Purity Fly Ash, Recycled HDPE Regrind", fontSize = 13.sp) },
+                        placeholder = { Text("e.g. High Purity Fly Ash, Recycled HDPE Regrind", fontSize = 13.sp, color = TextMuted) },
                         isError = materialError != null,
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
+                        colors = reloopTextFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
                     materialError?.let { Text(it, color = AlertRed, fontSize = 11.sp) }
@@ -207,10 +209,11 @@ fun ListMaterialScreen(
                             sellerName = it
                             if (it.isNotBlank()) sellerError = null
                         },
-                        placeholder = { Text("e.g. Rajpura Thermal Hub, Vardhman Steel", fontSize = 13.sp) },
+                        placeholder = { Text("e.g. Rajpura Thermal Hub, Vardhman Steel", fontSize = 13.sp, color = TextMuted) },
                         isError = sellerError != null,
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
+                        colors = reloopTextFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
                     sellerError?.let { Text(it, color = AlertRed, fontSize = 11.sp) }
@@ -241,11 +244,12 @@ fun ListMaterialScreen(
                                     quantityText = it
                                     if (it.toDoubleOrNull() != null) quantityError = null
                                 },
-                                placeholder = { Text("e.g. 500", fontSize = 13.sp) },
+                                placeholder = { Text("e.g. 500", fontSize = 13.sp, color = TextMuted) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 isError = quantityError != null,
                                 singleLine = true,
                                 shape = RoundedCornerShape(8.dp),
+                                colors = reloopTextFieldColors(),
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -257,6 +261,7 @@ fun ListMaterialScreen(
                                 onValueChange = { unit = it },
                                 singleLine = true,
                                 shape = RoundedCornerShape(8.dp),
+                                colors = reloopTextFieldColors(),
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -300,11 +305,12 @@ fun ListMaterialScreen(
                                 priceText = it
                                 if (it.toDoubleOrNull() != null) priceError = null
                             },
-                            placeholder = { Text("e.g. 420 or 34500", fontSize = 13.sp) },
+                            placeholder = { Text("e.g. 420 or 34500", fontSize = 13.sp, color = TextMuted) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             isError = priceError != null,
                             singleLine = true,
                             shape = RoundedCornerShape(8.dp),
+                            colors = reloopTextFieldColors(),
                             modifier = Modifier.fillMaxWidth()
                         )
                         priceError?.let { Text(it, color = AlertRed, fontSize = 11.sp) }
@@ -328,9 +334,10 @@ fun ListMaterialScreen(
                     OutlinedTextField(
                         value = gradeText,
                         onValueChange = { gradeText = it },
-                        placeholder = { Text("e.g. Class F (IS 3812), HMS 1/2", fontSize = 13.sp) },
+                        placeholder = { Text("e.g. Class F (IS 3812), HMS 1/2", fontSize = 13.sp, color = TextMuted) },
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
+                        colors = reloopTextFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -338,9 +345,10 @@ fun ListMaterialScreen(
                     OutlinedTextField(
                         value = conditionText,
                         onValueChange = { conditionText = it },
-                        placeholder = { Text("e.g. Dry Silo Powder, Clean Flakes, Baled", fontSize = 13.sp) },
+                        placeholder = { Text("e.g. Dry Silo Powder, Clean Flakes, Baled", fontSize = 13.sp, color = TextMuted) },
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
+                        colors = reloopTextFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -352,7 +360,7 @@ fun ListMaterialScreen(
                             shape = RoundedCornerShape(8.dp),
                             border = BorderStroke(1.dp, ReLoopBorder)
                         ) {
-                            Icon(Icons.Default.LocationOn, null, tint = BrandForest, modifier = Modifier.size(15.dp))
+                            Icon(Icons.Default.LocationOn, null, tint = BrandPrimary, modifier = Modifier.size(15.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(selectedCityKey, modifier = Modifier.weight(1f), color = TextDark, fontSize = 13.sp)
                             Icon(Icons.Default.ArrowDropDown, null, tint = TextMuted)
@@ -377,9 +385,10 @@ fun ListMaterialScreen(
                     OutlinedTextField(
                         value = descriptionText,
                         onValueChange = { descriptionText = it },
-                        placeholder = { Text("Describe application suitability, handling instructions, loading logistics…", fontSize = 12.5.sp) },
+                        placeholder = { Text("Describe application suitability, handling instructions, loading logistics…", fontSize = 12.5.sp, color = TextMuted) },
                         maxLines = 3,
                         shape = RoundedCornerShape(8.dp),
+                        colors = reloopTextFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

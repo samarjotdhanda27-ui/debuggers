@@ -160,6 +160,22 @@ fun ReLoopTopBar(
     }
 }
 
+/**
+ * Universal, high-contrast text field styling ensuring 100% readability across all devices and themes.
+ */
+@Composable
+fun reloopTextFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = TextDark,
+    unfocusedTextColor = TextDark,
+    focusedContainerColor = Color.White,
+    unfocusedContainerColor = Color.White,
+    focusedBorderColor = BrandPrimary,
+    unfocusedBorderColor = ReLoopBorder,
+    focusedPlaceholderColor = TextMuted,
+    unfocusedPlaceholderColor = TextMuted,
+    cursorColor = BrandPrimary
+)
+
 @Composable
 fun MarketplaceSearchBar(
     query: String,
@@ -182,7 +198,7 @@ fun MarketplaceSearchBar(
                 }
                 if (onFilterClick != null) {
                     IconButton(onClick = onFilterClick) {
-                        Icon(Icons.Default.Tune, contentDescription = "Filters", tint = BrandForest, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Tune, contentDescription = "Filters", tint = BrandPrimary, modifier = Modifier.size(20.dp))
                     }
                 }
             }
@@ -190,10 +206,15 @@ fun MarketplaceSearchBar(
         singleLine = true,
         shape = RoundedCornerShape(8.dp),
         colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = TextDark,
+            unfocusedTextColor = TextDark,
             unfocusedContainerColor = ReLoopPageBg,
             focusedContainerColor = Color.White,
             unfocusedBorderColor = ReLoopBorder,
-            focusedBorderColor = BrandForest
+            focusedBorderColor = BrandPrimary,
+            focusedPlaceholderColor = TextMuted,
+            unfocusedPlaceholderColor = TextMuted,
+            cursorColor = BrandPrimary
         ),
         modifier = modifier.fillMaxWidth()
     )
@@ -569,21 +590,45 @@ fun RequestQuoteBottomSheet(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(material.materialName, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = BrandForest)
-                        Text("${material.displayQuantity} available · ${material.priceDisplay}", fontSize = 12.sp, color = TextMuted)
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 10.dp)
+                    ) {
+                        Text(
+                            text = material.materialName,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = BrandPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${material.displayQuantity} available · ${material.priceDisplay}",
+                            fontSize = 12.sp,
+                            color = TextMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
-                    Surface(color = StatusVerifiedBg, shape = RoundedCornerShape(4.dp)) {
+                    Surface(
+                        color = StatusVerifiedBg,
+                        shape = RoundedCornerShape(6.dp),
+                        border = BorderStroke(0.5.dp, StatusVerified.copy(alpha = 0.3f))
+                    ) {
                         Text(
                             text = material.pricingBasis,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = StatusVerified,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            maxLines = 1,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
@@ -599,12 +644,7 @@ fun RequestQuoteBottomSheet(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = Color.White,
-                        focusedContainerColor = Color.White,
-                        unfocusedBorderColor = ReLoopBorder,
-                        focusedBorderColor = BrandForest
-                    )
+                    colors = reloopTextFieldColors()
                 )
             }
 
@@ -618,12 +658,7 @@ fun RequestQuoteBottomSheet(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = Color.White,
-                        focusedContainerColor = Color.White,
-                        unfocusedBorderColor = ReLoopBorder,
-                        focusedBorderColor = BrandForest
-                    )
+                    colors = reloopTextFieldColors()
                 )
             }
 
@@ -637,12 +672,7 @@ fun RequestQuoteBottomSheet(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = Color.White,
-                        focusedContainerColor = Color.White,
-                        unfocusedBorderColor = ReLoopBorder,
-                        focusedBorderColor = BrandForest
-                    )
+                    colors = reloopTextFieldColors()
                 )
             }
 
@@ -655,12 +685,7 @@ fun RequestQuoteBottomSheet(
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 2,
                     shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = Color.White,
-                        focusedContainerColor = Color.White,
-                        unfocusedBorderColor = ReLoopBorder,
-                        focusedBorderColor = BrandForest
-                    )
+                    colors = reloopTextFieldColors()
                 )
             }
 
