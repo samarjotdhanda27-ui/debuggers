@@ -20,7 +20,8 @@ It provides:
 
 - Android: Kotlin + Jetpack Compose
 - Backend: Python + FastAPI
-- Database: Supabase PostgreSQL
+- Database: Supabase PostgreSQL + MongoDB Atlas
+- Media: Cloudinary
 - Geographic Matching: Haversine formula
 
 ## Completed Work
@@ -55,6 +56,23 @@ GET /geo/matches/{seller_id}
 POST /geo/calculate
 
 GET /pathways/{material_name}
+
+GET /mongodb-status
+
+GET /cloudinary-status
+
+POST /media/upload
+
+GET /media
+
+On Render, set these environment variables:
+
+- `MONGODB_URI` — Atlas connection string with the real password (not `<db_password>`)
+- `MONGODB_DB` — `reloop`
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+- `CLOUDINARY_URL` — optional if the three Cloudinary keys above are set
 
 ## Important
 

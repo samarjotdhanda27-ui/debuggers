@@ -4,3 +4,5 @@ pydantic
 supabase
 python-dotenv
 pymongo[srv]
+cloudinary
+python-multipart
