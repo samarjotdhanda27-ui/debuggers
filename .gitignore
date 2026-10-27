@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 __pycache__/
 *.pyc
 *.pyo
@@ -5,3 +6,37 @@ reloop.db
 .env
 .vscode/
 *.egg-info/
+=======
+# Python temporary files
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Secret keys
+.env
+.env.*
+local.properties
+secrets.json
+*.key
+*.jks
+*.keystore
+
+# Android temporary files
+.gradle/
+build/
+.idea/
+*.apk
+*.aab
+.cxx/
+.externalNativeBuild/
+
+# VS Code
+.vscode/
+
+# Windows
+Thumbs.db
+Desktop.ini
+>>>>>>> 75395c4dc89968d25d96ee5f5c4d80b11080f824
