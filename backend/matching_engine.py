@@ -4,35 +4,64 @@ import math
 from .geo_matching import haversine_distance, load_json
 
 
+DISCLAIMER = (
+    "ReLoop provides preliminary industrial reuse decision support. "
+    "Opportunity scores are not material quality, safety, or regulatory "
+    "certifications. Properties and documents are seller-declared unless "
+    "independently verified. Distances are straight-line estimates."
+)
+
+
+def _normalize(value: Any) -> str:
+    return str(value).strip().lower()
+
+
+def _valid_number(value: Any):
+    try:
+        if isinstance(value, bool):
+            return None
+
+        number = float(value)
+
+        if not math.isfinite(number):
+            return None
+
+        return number
+
+    except (TypeError, ValueError):
+        return None
+
+
 def evaluate_properties(
     seller_props: Dict[str, Any],
     buyer_req_props: Dict[str, Any],
     pathway_key_props: List[str],
 ) -> Tuple[bool, List[str], List[str], List[str], float]:
-    """
-    Compare seller-declared property values with buyer-declared rules.
 
-    A failed mandatory buyer rule rejects the candidate.
-    Missing properties indicate incomplete verification, not proven incompatibility.
-    """
-    passed_reasons: List[str] = []
-    failed_reasons: List[str] = []
-    unverified_props: List[str] = []
+    passed_reasons = []
+    failed_reasons = []
+    unverified_props = []
 
     seller_norm = {
-        str(k).strip().lower(): v
+        _normalize(k): v
         for k, v in (seller_props or {}).items()
     }
+
     buyer_norm = {
-        str(k).strip().lower(): v
+        _normalize(k): v
         for k, v in (buyer_req_props or {}).items()
     }
 
-    verified_count = 0
+    passed_count = 0
     total_required = len(buyer_norm)
 
     for prop_name, rule in buyer_norm.items():
-        if prop_name not in seller_norm or seller_norm[prop_name] is None:
+
+        if (
+            prop_name not in seller_norm
+            or seller_norm[prop_name] is None
+            or seller_norm[prop_name] == ""
+        ):
             unverified_props.append(
                 f"{prop_name} (required by buyer, not declared by seller)"
             )
@@ -41,132 +70,217 @@ def evaluate_properties(
         seller_val = seller_norm[prop_name]
 
         if isinstance(rule, dict):
-            try:
-                numeric_val = float(seller_val)
-                if not math.isfinite(numeric_val):
-                    raise ValueError("Invalid numeric property value")
-            except (TypeError, ValueError):
+
+            numeric_val = _valid_number(seller_val)
+
+            if numeric_val is None:
                 unverified_props.append(
                     f"{prop_name} (seller value is not a valid number)"
                 )
                 continue
 
-            try:
-                min_val = (
-                    float(rule["min"])
-                    if rule.get("min") is not None
-                    else None
-                )
-                max_val = (
-                    float(rule["max"])
-                    if rule.get("max") is not None
-                    else None
-                )
+            min_val = None
+            max_val = None
 
-                if min_val is not None and not math.isfinite(min_val):
-                    raise ValueError("Invalid minimum")
-                if max_val is not None and not math.isfinite(max_val):
-                    raise ValueError("Invalid maximum")
-            except (TypeError, ValueError):
+            if rule.get("min") is not None:
+                min_val = _valid_number(rule["min"])
+
+                if min_val is None:
+                    unverified_props.append(
+                        f"{prop_name} (buyer minimum is invalid)"
+                    )
+                    continue
+
+            if rule.get("max") is not None:
+                max_val = _valid_number(rule["max"])
+
+                if max_val is None:
+                    unverified_props.append(
+                        f"{prop_name} (buyer maximum is invalid)"
+                    )
+                    continue
+
+            if min_val is None and max_val is None:
                 unverified_props.append(
-                    f"{prop_name} (buyer rule is invalid)"
+                    f"{prop_name} (no usable numeric buyer limit)"
+                )
+                continue
+
+            if (
+                min_val is not None
+                and max_val is not None
+                and min_val > max_val
+            ):
+                unverified_props.append(
+                    f"{prop_name} (buyer minimum exceeds maximum)"
                 )
                 continue
 
             if min_val is not None and numeric_val < min_val:
                 failed_reasons.append(
-                    f"Declared {prop_name} ({numeric_val}) is below buyer minimum ({min_val})"
+                    f"Declared {prop_name} ({numeric_val}) "
+                    f"is below buyer minimum ({min_val})"
                 )
                 continue
 
             if max_val is not None and numeric_val > max_val:
                 failed_reasons.append(
-                    f"Declared {prop_name} ({numeric_val}) exceeds buyer maximum ({max_val})"
+                    f"Declared {prop_name} ({numeric_val}) "
+                    f"exceeds buyer maximum ({max_val})"
                 )
                 continue
 
-            verified_count += 1
+            passed_count += 1
+
             passed_reasons.append(
-                f"Declared {prop_name} ({numeric_val}) satisfies buyer requirement"
+                f"Declared {prop_name} ({numeric_val}) "
+                "satisfies buyer requirement"
             )
 
         else:
-            if str(seller_val).strip().lower() == str(rule).strip().lower():
-                verified_count += 1
+
+            if _normalize(seller_val) == _normalize(rule):
+                passed_count += 1
+
                 passed_reasons.append(
-                    f"Declared {prop_name} ('{seller_val}') matches buyer requirement"
+                    f"Declared {prop_name} ('{seller_val}') "
+                    "matches buyer requirement"
                 )
+
             else:
                 failed_reasons.append(
-                    f"Declared {prop_name} ('{seller_val}') does not match buyer requirement ('{rule}')"
+                    f"Declared {prop_name} ('{seller_val}') "
+                    f"does not match buyer requirement ('{rule}')"
                 )
 
-    # Avoid duplicate warnings for properties listed in both the
-    # buyer's mandatory requirements and the research pathway.
-    already_reported = set()
-
-    for warning in unverified_props:
-        property_name = warning.split(" (", 1)[0]
-        already_reported.add(property_name)
+    already_reported = {
+        warning.split(" (", 1)[0]
+        for warning in unverified_props
+    }
 
     for key_prop in pathway_key_props or []:
-        key_norm = str(key_prop).strip().lower()
 
-        if key_norm not in seller_norm and key_norm not in already_reported:
+        key_norm = _normalize(key_prop)
+
+        if key_norm in already_reported:
+            continue
+
+        if (
+            key_norm not in seller_norm
+            or seller_norm[key_norm] is None
+            or seller_norm[key_norm] == ""
+        ):
             unverified_props.append(
-                f"{key_norm} (relevant to pathway, not declared by seller)"
+                f"{key_norm} "
+                "(relevant to pathway, not declared by seller)"
             )
+
             already_reported.add(key_norm)
 
     if failed_reasons:
-        return False, passed_reasons, failed_reasons, unverified_props, 0.0
+        return (
+            False,
+            passed_reasons,
+            failed_reasons,
+            unverified_props,
+            0.0,
+        )
 
     if total_required > 0:
-        ratio = verified_count / total_required
-        property_points = round(15.0 + 20.0 * ratio, 1)
+        property_points = round(
+            35.0 * passed_count / total_required,
+            1,
+        )
     else:
-        property_points = 25.0
+        property_points = 17.5
 
-    return True, passed_reasons, failed_reasons, unverified_props, property_points
+    return (
+        True,
+        passed_reasons,
+        failed_reasons,
+        unverified_props,
+        property_points,
+    )
 
 
 def evaluate_documents(
     seller_docs: List[str],
     buyer_req_docs: List[str],
 ) -> Tuple[List[str], List[str], float]:
-    """
-    Compare seller-declared document names with buyer requirements.
 
-    Presence in available_documents is only a declaration,
-    not evidence of independent document verification.
-    """
     seller_map = {
-        str(d).strip().lower(): str(d).strip()
-        for d in (seller_docs or [])
+        _normalize(doc): str(doc).strip()
+        for doc in (seller_docs or [])
     }
 
-    matched_docs: List[str] = []
-    missing_docs: List[str] = []
+    matched_docs = []
+    missing_docs = []
 
-    for req_doc in buyer_req_docs or []:
-        req_clean = str(req_doc).strip()
+    for required_doc in buyer_req_docs or []:
 
-        if req_clean.lower() in seller_map:
-            matched_docs.append(req_clean)
+        cleaned = str(required_doc).strip()
+
+        if _normalize(cleaned) in seller_map:
+            matched_docs.append(cleaned)
         else:
-            missing_docs.append(req_clean)
+            missing_docs.append(cleaned)
 
-    total_required = len(buyer_req_docs or [])
+    total = len(buyer_req_docs or [])
 
-    if total_required > 0:
-        doc_points = round(
-            15.0 * len(matched_docs) / total_required,
+    if total > 0:
+        document_points = round(
+            15.0 * len(matched_docs) / total,
             1,
         )
     else:
-        doc_points = 15.0 if seller_map else 7.5
+        document_points = 7.5
 
-    return matched_docs, missing_docs, doc_points
+    return matched_docs, missing_docs, document_points
+
+
+def _research_evidence(
+    pathway: Dict[str, Any],
+    sources: Any,
+) -> List[Dict[str, Any]]:
+
+    evidence = []
+
+    source_lookup = {}
+
+    if isinstance(sources, list):
+        source_lookup = {
+            str(source.get("id")): source
+            for source in sources
+            if isinstance(source, dict)
+        }
+
+    elif isinstance(sources, dict):
+        source_lookup = sources
+
+    for item in pathway.get("evidence") or []:
+
+        if not isinstance(item, dict):
+            continue
+
+        source_id = item.get("source_id")
+
+        source = source_lookup.get(
+            str(source_id),
+            {},
+        )
+
+        if not isinstance(source, dict):
+            source = {}
+
+        evidence.append(
+            {
+                "source_id": source_id,
+                "page": item.get("page"),
+                "source_details": source,
+            }
+        )
+
+    return evidence
 
 
 def match_material_with_requirements(
@@ -174,94 +288,121 @@ def match_material_with_requirements(
     requirements: List[Dict[str, Any]],
     max_distance_km: float = 300.0,
 ) -> Dict[str, Any]:
-    """
-    Match stored seller materials against stored buyer requirements.
 
-    Hard rejection conditions:
-    - Material mismatch
-    - Missing documented industrial reuse pathway
-    - Distance exceeds search radius
-    - Declared property fails a mandatory buyer limit
-
-    Other conditions:
-    - Missing properties/documents -> pending verification
-    - Insufficient quantity -> partial supply opportunity
-
-    No output constitutes safety or regulatory certification.
-    """
     pathways_data = load_json("reuse_pathways.json")
+
     supported_material = pathways_data["material"]["name"]
     pathways = pathways_data["reuse_pathways"]
 
-    seller_material = str(material.get("material_name", "")).strip()
-    seller_qty = float(material.get("quantity_tonnes", 0))
-    seller_lat = float(material.get("latitude", 0))
-    seller_lon = float(material.get("longitude", 0))
+    seller_material = str(
+        material.get("material_name", "")
+    ).strip()
 
-    valid_matches: List[Dict[str, Any]] = []
-    rejected_candidates: List[Dict[str, Any]] = []
+    seller_qty = float(
+        material.get("quantity_tonnes", 0)
+    )
 
-    if seller_material.lower() != supported_material.lower():
+    seller_lat = float(
+        material.get("latitude", 0)
+    )
+
+    seller_lon = float(
+        material.get("longitude", 0)
+    )
+
+    valid_matches = []
+    rejected_candidates = []
+
+    if _normalize(seller_material) != _normalize(supported_material):
+
         return {
             "material_supported": False,
             "matches": [],
             "rejected_candidates": [
                 {
+                    "match_status": "rejected",
                     "reason": (
-                        f"Material '{seller_material}' has no documented "
-                        "reuse pathway in the current dataset."
-                    )
+                        f"Material '{seller_material}' has no "
+                        "documented reuse pathway in the current dataset."
+                    ),
+                    "rejection_reasons": [
+                        "Unsupported material in current research dataset."
+                    ],
                 }
             ],
+            "disclaimer": DISCLAIMER,
         }
 
     for req in requirements or []:
-        buyer_id = req.get("id")
-        buyer_name = req.get("buyer_name", "Unknown Buyer")
-        buyer_industry = str(req.get("buyer_industry", "")).strip()
-        req_material = str(req.get("required_material", "")).strip()
-        req_qty = float(req.get("required_quantity_tonnes", 0))
-        buyer_lat = float(req.get("latitude", 0))
-        buyer_lon = float(req.get("longitude", 0))
 
-        # 1. Mandatory material check
-        if req_material.lower() != seller_material.lower():
+        buyer_id = req.get("id")
+        buyer_name = req.get(
+            "buyer_name",
+            "Unknown Buyer",
+        )
+
+        buyer_industry = str(
+            req.get("buyer_industry", "")
+        ).strip()
+
+        req_material = str(
+            req.get("required_material", "")
+        ).strip()
+
+        req_qty = float(
+            req.get("required_quantity_tonnes", 0)
+        )
+
+        buyer_lat = float(
+            req.get("latitude", 0)
+        )
+
+        buyer_lon = float(
+            req.get("longitude", 0)
+        )
+
+        if _normalize(req_material) != _normalize(seller_material):
+
             rejected_candidates.append(
                 {
                     "requirement_id": buyer_id,
                     "buyer_name": buyer_name,
                     "match_status": "rejected",
                     "rejection_reasons": [
-                        f"Material mismatch: buyer requires '{req_material}', seller offers '{seller_material}'."
+                        f"Material mismatch: buyer requires "
+                        f"'{req_material}', seller offers "
+                        f"'{seller_material}'."
                     ],
                 }
             )
+
             continue
 
-        # 2. Documented pathway check
         pathway = next(
             (
                 p for p in pathways
-                if p["buyer_industry"].strip().lower()
-                == buyer_industry.lower()
+                if _normalize(p["buyer_industry"])
+                == _normalize(buyer_industry)
             ),
             None,
         )
 
         if not pathway:
+
             rejected_candidates.append(
                 {
                     "requirement_id": buyer_id,
                     "buyer_name": buyer_name,
                     "match_status": "rejected",
                     "rejection_reasons": [
-                        f"No documented fly ash reuse pathway for '{buyer_industry}'."
+                        f"No documented fly ash reuse pathway "
+                        f"for '{buyer_industry}'."
                     ],
                 }
             )
+
             continue
 
-        # 3. Geographic radius check
         distance_km = haversine_distance(
             seller_lat,
             seller_lon,
@@ -270,6 +411,7 @@ def match_material_with_requirements(
         )
 
         if distance_km > max_distance_km:
+
             rejected_candidates.append(
                 {
                     "requirement_id": buyer_id,
@@ -277,13 +419,14 @@ def match_material_with_requirements(
                     "match_status": "rejected",
                     "distance_km": distance_km,
                     "rejection_reasons": [
-                        f"Distance {distance_km} km exceeds search radius {max_distance_km} km."
+                        f"Distance {distance_km} km exceeds "
+                        f"search radius {max_distance_km} km."
                     ],
                 }
             )
+
             continue
 
-        # 4. Buyer-declared property constraints
         (
             properties_compatible,
             passed_properties,
@@ -297,6 +440,7 @@ def match_material_with_requirements(
         )
 
         if not properties_compatible:
+
             rejected_candidates.append(
                 {
                     "requirement_id": buyer_id,
@@ -306,26 +450,50 @@ def match_material_with_requirements(
                     "rejection_reasons": failed_properties,
                 }
             )
+
             continue
 
-        # 5. Quantity evaluation
         quantity_sufficient = seller_qty >= req_qty
 
-        if quantity_sufficient:
-            quantity_points = 25.0
-            quantity_explanation = (
-                f"Seller quantity ({seller_qty} t) covers buyer demand ({req_qty} t)."
+        if req_qty > 0:
+
+            quantity_coverage = round(
+                min(
+                    100.0,
+                    100.0 * seller_qty / req_qty,
+                ),
+                1,
             )
-        else:
+
             quantity_points = round(
-                25.0 * seller_qty / req_qty, 1
-            ) if req_qty > 0 else 0.0
-
-            quantity_explanation = (
-                f"Partial supply: {seller_qty} t available against {req_qty} t requested."
+                25.0 * quantity_coverage / 100.0,
+                1,
             )
 
-        # 6. Geographic proximity score
+        else:
+            quantity_coverage = 0.0
+            quantity_points = 0.0
+
+        quantity_status = (
+            "full_supply"
+            if quantity_sufficient
+            else "partial_supply"
+        )
+
+        if quantity_sufficient:
+
+            quantity_explanation = (
+                f"Seller quantity ({seller_qty} t) "
+                f"covers buyer demand ({req_qty} t)."
+            )
+
+        else:
+
+            quantity_explanation = (
+                f"Partial supply: {seller_qty} t available "
+                f"against {req_qty} t requested."
+            )
+
         proximity_points = round(
             25.0 * max(
                 0.0,
@@ -334,14 +502,16 @@ def match_material_with_requirements(
             1,
         )
 
-        # 7. Documentation comparison
-        matched_docs, missing_docs, document_points = evaluate_documents(
+        (
+            matched_docs,
+            missing_docs,
+            document_points,
+        ) = evaluate_documents(
             material.get("available_documents") or [],
             req.get("required_documents") or [],
         )
 
-        # 8. Preliminary scoring
-        compatibility_score = round(
+        opportunity_score = round(
             property_points
             + quantity_points
             + proximity_points
@@ -349,55 +519,117 @@ def match_material_with_requirements(
             1,
         )
 
-        # 9. Clear match status
-        # Buyer-mandatory property gaps and document gaps mean the
-        # candidate needs verification before further evaluation.
-        missing_buyer_properties = [
-            p for p in (req.get("required_properties") or {}).keys()
-            if str(p).strip().lower()
-            not in {
-                str(k).strip().lower()
-                for k in (material.get("material_properties") or {}).keys()
-            }
+        seller_props = {
+            _normalize(k): v
+            for k, v in (
+                material.get("material_properties") or {}
+            ).items()
+        }
+
+        missing_buyer_properties = []
+
+        for prop_name in (
+            req.get("required_properties") or {}
+        ).keys():
+
+            normalized = _normalize(prop_name)
+
+            if (
+                normalized not in seller_props
+                or seller_props[normalized] is None
+                or seller_props[normalized] == ""
+            ):
+                missing_buyer_properties.append(prop_name)
+
+        invalid_or_incomplete_properties = [
+            warning
+            for warning in unverified_properties
+            if (
+                "required by buyer" in warning
+                or "not a valid number" in warning
+                or "buyer minimum is invalid" in warning
+                or "buyer maximum is invalid" in warning
+                or "no usable numeric buyer limit" in warning
+                or "buyer minimum exceeds maximum" in warning
+            )
         ]
 
-        if missing_buyer_properties or missing_docs:
+        if (
+            missing_buyer_properties
+            or invalid_or_incomplete_properties
+            or missing_docs
+        ):
+            verification_status = "pending_verification"
+
+        else:
+            verification_status = "eligible_for_review"
+
+        if verification_status == "pending_verification":
             match_status = "pending_verification"
+
         elif not quantity_sufficient:
             match_status = "partial_supply"
+
         else:
             match_status = "eligible_for_review"
 
-        reference_standard = pathway.get("reference_standard")
+        reference_standard = pathway.get(
+            "reference_standard"
+        )
+
+        research_evidence = _research_evidence(
+            pathway,
+            pathways_data.get("sources", []),
+        )
 
         explanations = [
-            f"Research-supported pathway: {buyer_industry} → {pathway['application']}.",
             (
-                f"Reference standard: {reference_standard or 'Not specified'}. "
-                "Applicability and current requirements require verification."
+                f"Research-supported pathway: "
+                f"{buyer_industry} → {pathway['application']}."
             ),
-            f"Straight-line distance: {distance_km} km.",
+            (
+                f"Reference standard: "
+                f"{reference_standard or 'Not specified'}. "
+                "Applicability and compliance are not verified."
+            ),
+            (
+                f"Straight-line distance: {distance_km} km. "
+                "This is not road travel distance."
+            ),
             quantity_explanation,
+            (
+                f"Quantity coverage: {quantity_coverage}% "
+                "of buyer demand."
+            ),
+            (
+                f"Preliminary opportunity score: "
+                f"{opportunity_score}/100. "
+                "This is not a certification score."
+            ),
         ]
 
         explanations.extend(passed_properties)
 
         if matched_docs:
+
             explanations.append(
-                "Seller declares: "
+                "Seller declares documents: "
                 + ", ".join(matched_docs)
-                + ". Document authenticity is not verified."
+                + ". Authenticity is not independently verified."
             )
 
         if missing_docs:
+
             explanations.append(
                 "Missing requested documents: "
                 + ", ".join(missing_docs)
             )
 
         if unverified_properties:
+
             explanations.append(
-                "Additional pathway properties require verification."
+                "Additional properties require verification: "
+                + "; ".join(unverified_properties)
             )
 
         valid_matches.append(
@@ -409,13 +641,26 @@ def match_material_with_requirements(
                 "state": req.get("state"),
                 "latitude": buyer_lat,
                 "longitude": buyer_lon,
+
                 "distance_km": distance_km,
+                "distance_type": "straight_line_haversine",
+
                 "required_quantity_tonnes": req_qty,
+                "available_quantity_tonnes": seller_qty,
                 "quantity_sufficient": quantity_sufficient,
+                "quantity_coverage_percent": quantity_coverage,
+                "quantity_status": quantity_status,
+
                 "pathway_id": pathway["id"],
                 "recommended_application": pathway["application"],
                 "standard_reference": reference_standard,
-                "compatibility_score": compatibility_score,
+                "research_evidence": research_evidence,
+
+                "opportunity_score": opportunity_score,
+
+                # Backward-compatible field for Android clients.
+                "compatibility_score": opportunity_score,
+
                 "score_breakdown": {
                     "property_compatibility_points": property_points,
                     "quantity_points": quantity_points,
@@ -423,26 +668,33 @@ def match_material_with_requirements(
                     "documentation_points": document_points,
                     "max_possible_points": 100.0,
                 },
+
                 "matched_documents": matched_docs,
                 "missing_documents": missing_docs,
+
                 "unverified_properties": unverified_properties,
                 "missing_buyer_properties": missing_buyer_properties,
+
                 "explanations": explanations,
+
                 "verification_required": True,
+                "verification_status": verification_status,
                 "match_status": match_status,
+
                 "is_synthetic": bool(
                     material.get("is_synthetic")
                     or req.get("is_synthetic")
                 ),
+
+                "disclaimer": DISCLAIMER,
             }
         )
 
-    # Full supply first, then higher score, then shorter distance.
     valid_matches.sort(
-        key=lambda m: (
-            not m["quantity_sufficient"],
-            -m["compatibility_score"],
-            m["distance_km"],
+        key=lambda match: (
+            not match["quantity_sufficient"],
+            -match["opportunity_score"],
+            match["distance_km"],
         )
     )
 
@@ -450,4 +702,5 @@ def match_material_with_requirements(
         "material_supported": True,
         "matches": valid_matches,
         "rejected_candidates": rejected_candidates,
+        "disclaimer": DISCLAIMER,
     }
