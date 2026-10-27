@@ -2,7 +2,9 @@ package com.debuggers.reloop
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -12,9 +14,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.debuggers.reloop.data.model.MaterialItem
-import com.debuggers.reloop.data.model.RequirementItem
 import com.debuggers.reloop.data.repository.MaterialRepository
 import com.debuggers.reloop.ui.components.ReLoopTopBar
 import com.debuggers.reloop.ui.components.ServerDiagnosticsDialog
@@ -27,35 +30,36 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ReLoopTheme {
-                ReLoopMainApp()
+                ReLoopAppRoot()
             }
         }
     }
 }
 
-enum class AppScreen {
+enum class AppDestination {
     HOME,
-    DISCOVER,
+    EXPLORE,
     LIST_MATERIAL,
-    POST_REQUIREMENT,
+    PASSPORTS,
+    PROFILE,
     MATERIAL_DETAIL,
-    PASSPORT_FULL,
-    PROFILE
+    POST_REQUIREMENT
 }
 
 @Composable
-fun ReLoopMainApp() {
+fun ReLoopAppRoot() {
     val coroutineScope = rememberCoroutineScope()
 
     val materials by MaterialRepository.materials.collectAsState()
     val requirements by MaterialRepository.requirements.collectAsState()
+    val quoteRequests by MaterialRepository.quoteRequests.collectAsState()
     val serverHealth by MaterialRepository.serverHealth.collectAsState()
     val isLoading by MaterialRepository.isLoading.collectAsState()
 
-    var currentScreen by remember { mutableStateOf(AppScreen.HOME) }
-    var previousScreen by remember { mutableStateOf(AppScreen.HOME) }
+    var currentScreen by remember { mutableStateOf(AppDestination.HOME) }
+    var previousScreen by remember { mutableStateOf(AppDestination.HOME) }
     var selectedMaterial by remember { mutableStateOf<MaterialItem?>(null) }
-    var detailInitialTab by remember { mutableStateOf(0) }
+    var detailTab by remember { mutableStateOf(0) }
     var showDiagnosticsDialog by remember { mutableStateOf(false) }
 
     // Initial background sync with live backend
@@ -63,36 +67,51 @@ fun ReLoopMainApp() {
         MaterialRepository.refreshAll()
     }
 
-    fun navigateTo(screen: AppScreen) {
+    // Hardware & Gesture Back Navigation Handling
+    BackHandler(enabled = currentScreen != AppDestination.HOME) {
+        if (currentScreen == AppDestination.MATERIAL_DETAIL || currentScreen == AppDestination.POST_REQUIREMENT) {
+            currentScreen = previousScreen
+        } else {
+            currentScreen = AppDestination.HOME
+        }
+    }
+
+    fun navigateTo(dest: AppDestination) {
         previousScreen = currentScreen
-        currentScreen = screen
+        currentScreen = dest
     }
 
-    fun openMaterialDetails(item: MaterialItem, initialTab: Int = 0) {
+    fun openMaterialDetails(item: MaterialItem, tab: Int = 0) {
         selectedMaterial = item
-        detailInitialTab = initialTab
-        navigateTo(AppScreen.MATERIAL_DETAIL)
+        detailTab = tab
+        navigateTo(AppDestination.MATERIAL_DETAIL)
     }
 
-    val topLevelScreens = listOf(AppScreen.HOME, AppScreen.DISCOVER, AppScreen.PROFILE)
+    val bottomNavDestinations = listOf(
+        AppDestination.HOME,
+        AppDestination.EXPLORE,
+        AppDestination.LIST_MATERIAL,
+        AppDestination.PASSPORTS,
+        AppDestination.PROFILE
+    )
 
     Scaffold(
         containerColor = ReLoopPageBg,
         topBar = {
-            if (currentScreen in topLevelScreens) {
+            if (currentScreen in bottomNavDestinations && currentScreen != AppDestination.LIST_MATERIAL && currentScreen != AppDestination.PASSPORTS) {
                 ReLoopTopBar(
                     serverHealth = serverHealth,
+                    currentLocation = "Punjab Hub",
+                    onLocationClick = { navigateTo(AppDestination.EXPLORE) },
                     onHealthClick = { showDiagnosticsDialog = true },
-                    onProfileClick = { navigateTo(AppScreen.PROFILE) }
+                    onProfileClick = { navigateTo(AppDestination.PROFILE) }
                 )
             }
         },
         bottomBar = {
-            if (currentScreen in topLevelScreens) {
+            if (currentScreen in bottomNavDestinations) {
                 ReLoopBottomBar(
                     currentScreen = currentScreen,
-                    materialsCount = materials.size,
-                    requirementsCount = requirements.size,
                     onSelectScreen = { currentScreen = it }
                 )
             }
@@ -104,7 +123,7 @@ fun ReLoopMainApp() {
                 .padding(innerPadding)
         ) {
             when (currentScreen) {
-                AppScreen.HOME -> HomeScreen(
+                AppDestination.HOME -> HomeScreen(
                     materials = materials,
                     requirements = requirements,
                     serverHealth = serverHealth,
@@ -114,82 +133,67 @@ fun ReLoopMainApp() {
                             MaterialRepository.refreshAll()
                         }
                     },
-                    onListMaterial = { navigateTo(AppScreen.LIST_MATERIAL) },
-                    onPostRequirement = { navigateTo(AppScreen.POST_REQUIREMENT) },
-                    onOpenMaterial = { item -> openMaterialDetails(item, initialTab = 0) },
-                    onOpenRequirement = { req ->
-                        // If matching material exists, open details in Matches tab
-                        val matched = materials.find { m -> m.materialName.contains(req.requiredMaterial, true) }
-                        if (matched != null) {
-                            openMaterialDetails(matched, initialTab = 1)
-                        } else if (materials.isNotEmpty()) {
-                            openMaterialDetails(materials.first(), initialTab = 1)
-                        }
-                    },
-                    onFindMatchesForMaterial = { item -> openMaterialDetails(item, initialTab = 1) },
-                    onViewPassport = { item -> openMaterialDetails(item, initialTab = 3) },
-                    onViewAllDiscover = { currentScreen = AppScreen.DISCOVER }
+                    onListMaterial = { navigateTo(AppDestination.LIST_MATERIAL) },
+                    onPostRequirement = { navigateTo(AppDestination.POST_REQUIREMENT) },
+                    onOpenMaterial = { item -> openMaterialDetails(item, tab = 0) },
+                    onViewPassport = { item -> openMaterialDetails(item, tab = 3) },
+                    onNavigateToExplore = { currentScreen = AppDestination.EXPLORE }
                 )
 
-                AppScreen.DISCOVER -> DiscoverScreen(
+                AppDestination.EXPLORE -> DiscoverScreen(
                     materials = materials,
-                    onOpenMaterial = { item -> openMaterialDetails(item, initialTab = 0) },
-                    onFindMatches = { item -> openMaterialDetails(item, initialTab = 1) },
-                    onViewPassport = { item -> openMaterialDetails(item, initialTab = 3) }
+                    onOpenMaterial = { item -> openMaterialDetails(item, tab = 0) },
+                    onViewPassport = { item -> openMaterialDetails(item, tab = 3) }
                 )
 
-                AppScreen.LIST_MATERIAL -> ListMaterialScreen(
-                    onBack = { currentScreen = previousScreen },
+                AppDestination.LIST_MATERIAL -> ListMaterialScreen(
+                    onBack = { currentScreen = previousScreen.takeIf { it != AppDestination.LIST_MATERIAL } ?: AppDestination.HOME },
                     onSuccessCreated = {
                         val newest = MaterialRepository.materials.value.firstOrNull()
                         if (newest != null) {
-                            openMaterialDetails(newest, initialTab = 0)
+                            openMaterialDetails(newest, tab = 0)
                         } else {
-                            currentScreen = AppScreen.HOME
+                            currentScreen = AppDestination.HOME
                         }
                     }
                 )
 
-                AppScreen.POST_REQUIREMENT -> PostRequirementScreen(
+                AppDestination.POST_REQUIREMENT -> PostRequirementScreen(
                     onBack = { currentScreen = previousScreen },
                     onSuccessSubmitted = {
-                        currentScreen = AppScreen.HOME
+                        currentScreen = AppDestination.HOME
                     }
                 )
 
-                AppScreen.MATERIAL_DETAIL -> {
-                    selectedMaterial?.let { item ->
-                        MaterialDetailScreen(
-                            item = item,
-                            initialTab = detailInitialTab,
-                            onBack = { currentScreen = previousScreen },
-                            onViewPassportFull = {
-                                navigateTo(AppScreen.PASSPORT_FULL)
-                            }
-                        )
-                    } ?: run {
-                        currentScreen = AppScreen.HOME
-                    }
-                }
+                AppDestination.PASSPORTS -> PassportScreen(
+                    materials = materials,
+                    initialMaterial = selectedMaterial,
+                    onBack = { currentScreen = AppDestination.HOME }
+                )
 
-                AppScreen.PASSPORT_FULL -> {
-                    selectedMaterial?.let { item ->
-                        PassportScreen(
-                            item = item,
-                            onBack = { currentScreen = AppScreen.MATERIAL_DETAIL }
-                        )
-                    } ?: run {
-                        currentScreen = AppScreen.HOME
-                    }
-                }
-
-                AppScreen.PROFILE -> ProfileScreen(
+                AppDestination.PROFILE -> ProfileScreen(
                     serverHealth = serverHealth,
                     myListingsCount = materials.size,
                     myRequirementsCount = requirements.size,
-                    onListMaterial = { navigateTo(AppScreen.LIST_MATERIAL) },
-                    onPostRequirement = { navigateTo(AppScreen.POST_REQUIREMENT) }
+                    quoteRequests = quoteRequests,
+                    onListMaterial = { navigateTo(AppDestination.LIST_MATERIAL) },
+                    onPostRequirement = { navigateTo(AppDestination.POST_REQUIREMENT) }
                 )
+
+                AppDestination.MATERIAL_DETAIL -> {
+                    selectedMaterial?.let { item ->
+                        MaterialDetailScreen(
+                            item = item,
+                            initialTab = detailTab,
+                            onBack = { currentScreen = previousScreen },
+                            onViewPassportFull = {
+                                navigateTo(AppDestination.PASSPORTS)
+                            }
+                        )
+                    } ?: run {
+                        currentScreen = AppDestination.HOME
+                    }
+                }
             }
         }
 
@@ -209,42 +213,55 @@ fun ReLoopMainApp() {
 
 @Composable
 fun ReLoopBottomBar(
-    currentScreen: AppScreen,
-    materialsCount: Int,
-    requirementsCount: Int,
-    onSelectScreen: (AppScreen) -> Unit
+    currentScreen: AppDestination,
+    onSelectScreen: (AppDestination) -> Unit
 ) {
-    NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 2.dp
+    Surface(
+        color = Color.White,
+        border = BorderStroke(0.5.dp, ReLoopBorder),
+        shadowElevation = 3.dp
     ) {
-        val items = listOf(
-            Triple(AppScreen.HOME, Icons.Default.Home, "Exchange"),
-            Triple(AppScreen.DISCOVER, Icons.Default.Search, "Market"),
-            Triple(AppScreen.PROFILE, Icons.Default.Person, "Account")
-        )
-
-        items.forEach { (screen, icon, label) ->
-            val isSelected = currentScreen == screen
-            NavigationBarItem(
-                selected = isSelected,
-                onClick = { onSelectScreen(screen) },
-                icon = {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = label,
-                        modifier = Modifier.size(22.dp)
-                    )
-                },
-                label = { Text(label) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = BrandForest,
-                    selectedTextColor = BrandForest,
-                    indicatorColor = BrandLime.copy(alpha = 0.5f),
-                    unselectedIconColor = TextMuted,
-                    unselectedTextColor = TextMuted
-                )
+        NavigationBar(
+            containerColor = Color.White,
+            tonalElevation = 0.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val navItems = listOf(
+                Triple(AppDestination.HOME, Icons.Default.Home, "Home"),
+                Triple(AppDestination.EXPLORE, Icons.Default.Search, "Explore"),
+                Triple(AppDestination.LIST_MATERIAL, Icons.Default.AddCircleOutline, "List"),
+                Triple(AppDestination.PASSPORTS, Icons.Default.QrCode2, "Passports"),
+                Triple(AppDestination.PROFILE, Icons.Default.PersonOutline, "Account")
             )
+
+            navItems.forEach { (destination, icon, label) ->
+                val isSelected = currentScreen == destination
+                NavigationBarItem(
+                    selected = isSelected,
+                    onClick = { onSelectScreen(destination) },
+                    icon = {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = label,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = label,
+                            fontSize = 10.5.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = BrandForest,
+                        selectedTextColor = BrandForest,
+                        indicatorColor = BrandMintBg,
+                        unselectedIconColor = TextMuted,
+                        unselectedTextColor = TextMuted
+                    )
+                )
+            }
         }
     }
 }

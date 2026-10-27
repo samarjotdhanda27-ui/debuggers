@@ -7,10 +7,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 object MaterialRepository {
 
-    // Known industrial hubs with latitude and longitude for accurate geocoding
     val regionalCoordinates: Map<String, Pair<Double, Double>> = mapOf(
         "Rajpura, Punjab" to Pair(30.478, 76.593),
         "Bathinda, Punjab" to Pair(30.211, 74.945),
@@ -27,20 +29,31 @@ object MaterialRepository {
         "Kurukshetra, Haryana" to Pair(29.970, 76.878),
         "Yamunanagar, Haryana" to Pair(30.129, 77.267),
         "Gurugram, Haryana" to Pair(28.459, 77.026),
-        "Faridabad, Haryana" to Pair(28.408, 77.317)
+        "Faridabad, Haryana" to Pair(28.408, 77.317),
+        "Baddi, Himachal Pradesh" to Pair(30.957, 76.791)
     )
 
     val supportedIndustries = listOf(
         "Thermal Power Generation",
-        "Cement Manufacturing",
-        "Steel Manufacturing",
+        "Cement & Concrete Manufacturing",
+        "Steel & Metallurgy",
         "Foundry & Casting",
+        "Plastics & Polymers",
+        "Paper & Pulp Packaging",
         "Chemical Processing",
         "Construction & Aggregates",
-        "Brick & Block Production",
-        "Textile Processing",
-        "Food Processing",
+        "Brick & Masonry Units",
         "Other Industrial"
+    )
+
+    val materialCategories = listOf(
+        "All Categories",
+        "Minerals & By-Products",
+        "Metals",
+        "Construction",
+        "Plastics",
+        "Chemicals",
+        "Paper"
     )
 
     val standardDocumentsList = listOf(
@@ -52,7 +65,7 @@ object MaterialRepository {
         "Material Safety Data Sheet (MSDS)"
     )
 
-    // Seed items so that if the user starts the app completely offline, there's full rich content
+    // Realistic industrial B2B material items for robust offline availability
     private val seedMaterials = listOf(
         MaterialItem(
             id = "15ba8dc8-4022-43b2-a2ca-d301e70d22b1",
@@ -64,55 +77,140 @@ object MaterialRepository {
             state = "Punjab",
             latitude = 30.478,
             longitude = 76.593,
-            properties = mapOf("fineness" to 320, "moisture" to 2.5, "loss_on_ignition" to 1.8),
+            properties = mapOf(
+                "grade" to "Class F (IS 3812 Part 1)",
+                "condition" to "Dry Silo Electrostatic Precipitator Ash",
+                "fineness" to 320,
+                "moisture" to 1.5,
+                "loss_on_ignition" to 2.1,
+                "price_per_tonne" to 420.0,
+                "pricing_basis" to "Ex-Plant Silo Loading",
+                "availability" to "In Stock · 500 MT Dispatch Ready",
+                "unit" to "tonnes",
+                "description" to "Siliceous pulverized fuel ash suitable as SCM in Portland Pozzolana Cement and RMC concrete. Regular batch test certificates available."
+            ),
             availableDocuments = listOf("Material Test Report", "CPCB / SPCB Consent NOC"),
             isSynthetic = true,
             createdAt = "2026-10-26"
         ),
         MaterialItem(
-            id = "seed-fs-002",
-            sellerName = "Ludhiana Precision Castings",
-            materialName = "Foundry Sand",
-            sourceIndustry = "Foundry & Casting",
-            quantityTonnes = 85.0,
-            city = "Ludhiana",
-            state = "Punjab",
-            latitude = 30.901,
-            longitude = 75.857,
-            properties = mapOf("clay_content" to 3.2, "grain_fineness" to 55),
-            availableDocuments = listOf("Particle Size Distribution (PSD)"),
-            isSynthetic = false,
-            createdAt = "2026-10-25"
-        ),
-        MaterialItem(
-            id = "seed-ms-003",
+            id = "seed-ms-002",
             sellerName = "Mandi Gobindgarh Re-Rollers",
-            materialName = "Ferrous Mill Scale & Scrap",
-            sourceIndustry = "Steel Manufacturing",
-            quantityTonnes = 42.0,
+            materialName = "Heavy Melting Steel Scrap (HMS 1/2)",
+            sourceIndustry = "Steel & Metallurgy",
+            quantityTonnes = 65.0,
             city = "Mandi Gobindgarh",
             state = "Punjab",
             latitude = 30.664,
             longitude = 76.291,
-            properties = mapOf("iron_content_fe" to 68.5, "moisture" to 0.8),
+            properties = mapOf(
+                "grade" to "IS 2549 Grade 1 Heavy Scrap",
+                "condition" to "Sheared & Torch-Cut Industrial Cut-Pieces",
+                "iron_content_fe" to 92.5,
+                "price_per_tonne" to 34500.0,
+                "pricing_basis" to "Ex-Stockyard Weighbridge",
+                "availability" to "In Stock · Immediate Dispatch",
+                "unit" to "tonnes",
+                "description" to "Secondary structural steel cut-offs and clean industrial offcuts. Moisture and non-ferrous contaminants screened."
+            ),
             availableDocuments = listOf("Material Test Report", "Chemical Characterization Analysis"),
+            isSynthetic = false,
+            createdAt = "2026-10-25"
+        ),
+        MaterialItem(
+            id = "seed-fs-003",
+            sellerName = "Ludhiana Precision Foundry Cluster",
+            materialName = "Used Foundry Sand",
+            sourceIndustry = "Foundry & Casting",
+            quantityTonnes = 120.0,
+            city = "Ludhiana",
+            state = "Punjab",
+            latitude = 30.901,
+            longitude = 75.857,
+            properties = mapOf(
+                "grade" to "Silica Sub-base IS 383",
+                "condition" to "Mechanically Reclaimed Foundry Sand",
+                "clay_content" to 2.8,
+                "grain_fineness" to 58,
+                "pricing_basis" to "Request a quote (Bulk Tender)",
+                "availability" to "Continuous Stream · 30 MT / Week",
+                "unit" to "tonnes",
+                "description" to "Spent green sand from ferrous casting, screened of metallic inclusions. Suitable for paver blocks, subbase fill, and asphalt aggregate."
+            ),
+            availableDocuments = listOf("Particle Size Distribution (PSD)", "CPCB / SPCB Consent NOC"),
             isSynthetic = false,
             createdAt = "2026-10-24"
         ),
         MaterialItem(
-            id = "seed-pw-004",
-            sellerName = "Panipat Industrial Process Park",
-            materialName = "Treated Process Effluent",
-            sourceIndustry = "Chemical Processing",
-            quantityTonnes = 120.0,
-            city = "Panipat",
-            state = "Haryana",
-            latitude = 29.391,
-            longitude = 76.964,
-            properties = mapOf("ph" to 7.2, "tds_ppm" to 450, "tss_ppm" to 12),
-            availableDocuments = listOf("CPCB / SPCB Consent NOC"),
+            id = "seed-pl-004",
+            sellerName = "Baddi Polymer Circular Facility",
+            materialName = "Recycled HDPE Regrind Flakes",
+            sourceIndustry = "Plastics & Polymers",
+            quantityTonnes = 28.0,
+            city = "Baddi",
+            state = "Himachal Pradesh",
+            latitude = 30.957,
+            longitude = 76.791,
+            properties = mapOf(
+                "grade" to "Blow Molding Grade (MFI 0.7 - 0.9)",
+                "condition" to "Hot-Washed & De-dusted Regrind Flakes",
+                "density" to 0.952,
+                "price_per_tonne" to 68000.0,
+                "pricing_basis" to "Ex-Works Baddi (In 25kg Bags)",
+                "availability" to "In Stock · 28 MT",
+                "unit" to "tonnes",
+                "description" to "Post-industrial clean HDPE blow mold regrind. Free of PVC contamination, washed and dried ready for compounding or direct extrusion."
+            ),
+            availableDocuments = listOf("Material Test Report", "Material Safety Data Sheet (MSDS)"),
             isSynthetic = false,
             createdAt = "2026-10-23"
+        ),
+        MaterialItem(
+            id = "seed-ca-005",
+            sellerName = "Gurugram Infrastructure Recycling",
+            materialName = "Recycled Concrete Aggregate (RCA)",
+            sourceIndustry = "Construction & Aggregates",
+            quantityTonnes = 350.0,
+            city = "Gurugram",
+            state = "Haryana",
+            latitude = 28.459,
+            longitude = 77.026,
+            properties = mapOf(
+                "grade" to "10mm - 20mm Coarse Aggregate IS 383",
+                "condition" to "Crushed, Screened & Air-Classified",
+                "crushing_value" to 26.2,
+                "price_per_tonne" to 580.0,
+                "pricing_basis" to "Loaded on Dumper / Transit Available",
+                "availability" to "Large Stockpile Available",
+                "unit" to "tonnes",
+                "description" to "Processed C&D concrete aggregate compliant with CPWD / MoRTH guidelines for lean concrete base and non-structural precast elements."
+            ),
+            availableDocuments = listOf("Material Test Report", "CPCB / SPCB Consent NOC"),
+            isSynthetic = false,
+            createdAt = "2026-10-22"
+        ),
+        MaterialItem(
+            id = "seed-pa-006",
+            sellerName = "Yamunanagar Paper & Board Mills",
+            materialName = "Baled OCC Kraft Cardboard Waste",
+            sourceIndustry = "Paper & Pulp Packaging",
+            quantityTonnes = 80.0,
+            city = "Yamunanagar",
+            state = "Haryana",
+            latitude = 30.129,
+            longitude = 77.267,
+            properties = mapOf(
+                "grade" to "Grade 11 Old Corrugated Containers (OCC)",
+                "condition" to "High-Density Wire-Baled (Moisture < 12%)",
+                "price_per_tonne" to 15200.0,
+                "pricing_basis" to "Ex-Mill Yard",
+                "availability" to "Continuous Stream · 25 MT / Week",
+                "unit" to "tonnes",
+                "description" to "Industrial packaging cartons, sorted and compressed into high-density 400kg bales. Low outthrow content (< 1.5%)."
+            ),
+            availableDocuments = listOf("CPCB / SPCB Consent NOC"),
+            isSynthetic = false,
+            createdAt = "2026-10-21"
         )
     )
 
@@ -120,7 +218,7 @@ object MaterialRepository {
         RequirementItem(
             id = "85d26890-6f84-4db4-b78a-37dfaf7e4d69",
             buyerName = "Ambala Green Cement Works",
-            buyerIndustry = "Cement Manufacturing",
+            buyerIndustry = "Cement & Concrete Manufacturing",
             requiredMaterial = "Fly Ash",
             requiredQuantityTonnes = 300.0,
             city = "Ambala",
@@ -135,9 +233,9 @@ object MaterialRepository {
         RequirementItem(
             id = "seed-req-002",
             buyerName = "Patiala Eco Pavers & Blocks",
-            buyerIndustry = "Brick & Block Production",
+            buyerIndustry = "Brick & Masonry Units",
             requiredMaterial = "Foundry Sand",
-            requiredQuantityTonnes = 50.0,
+            requiredQuantityTonnes = 60.0,
             city = "Patiala",
             state = "Punjab",
             latitude = 30.340,
@@ -146,6 +244,21 @@ object MaterialRepository {
             requiredDocuments = listOf("Particle Size Distribution (PSD)"),
             isSynthetic = false,
             createdAt = "2026-10-25"
+        ),
+        RequirementItem(
+            id = "seed-req-003",
+            buyerName = "Karnal Precision Induction Furnaces",
+            buyerIndustry = "Steel & Metallurgy",
+            requiredMaterial = "Heavy Melting Steel Scrap",
+            requiredQuantityTonnes = 100.0,
+            city = "Kurukshetra",
+            state = "Haryana",
+            latitude = 29.970,
+            longitude = 76.878,
+            requiredProperties = mapOf("minimum_fe" to 90),
+            requiredDocuments = listOf("Material Test Report"),
+            isSynthetic = false,
+            createdAt = "2026-10-24"
         )
     )
 
@@ -155,13 +268,15 @@ object MaterialRepository {
     private val _requirements = MutableStateFlow<List<RequirementItem>>(seedRequirements)
     val requirements: StateFlow<List<RequirementItem>> = _requirements.asStateFlow()
 
+    private val _quoteRequests = MutableStateFlow<List<EnquiryQuoteRequest>>(emptyList())
+    val quoteRequests: StateFlow<List<EnquiryQuoteRequest>> = _quoteRequests.asStateFlow()
+
     private val _serverHealth = MutableStateFlow(ServerHealth(isOnline = false))
     val serverHealth: StateFlow<ServerHealth> = _serverHealth.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    // Locally created items during this session
     private val localCreatedMaterials = mutableListOf<MaterialItem>()
     private val localCreatedRequirements = mutableListOf<RequirementItem>()
 
@@ -169,7 +284,6 @@ object MaterialRepository {
         _isLoading.value = true
         checkServerStatus()
 
-        // Fetch live materials
         val liveMaterials = ReLoopApiClient.getMaterials()
         if (liveMaterials.isNotEmpty()) {
             val liveIds = liveMaterials.map { it.id }.toSet()
@@ -177,11 +291,9 @@ object MaterialRepository {
             val extraSeed = seedMaterials.filter { it.id !in liveIds && it.id !in extraLocal.map { l -> l.id } }
             _materials.value = liveMaterials + extraLocal + extraSeed
         } else {
-            // Keep existing plus locally created
             _materials.value = localCreatedMaterials + seedMaterials
         }
 
-        // Fetch live requirements
         val liveReqs = ReLoopApiClient.getRequirements()
         if (liveReqs.isNotEmpty()) {
             val liveIds = liveReqs.map { it.id }.toSet()
@@ -235,7 +347,6 @@ object MaterialRepository {
 
         val (success, message) = ReLoopApiClient.createMaterial(body)
 
-        // Optimistically record locally
         val newItem = MaterialItem(
             id = "loc-${System.currentTimeMillis()}",
             sellerName = sellerName.trim(),
@@ -249,12 +360,11 @@ object MaterialRepository {
             properties = properties,
             availableDocuments = availableDocuments,
             isSynthetic = false,
-            createdAt = "Just now"
+            createdAt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         )
         localCreatedMaterials.add(0, newItem)
         _materials.value = listOf(newItem) + _materials.value.filter { it.id != newItem.id }
 
-        // Refresh live data in background
         if (success) {
             refreshAll()
         }
@@ -309,7 +419,7 @@ object MaterialRepository {
             requiredProperties = requiredProperties,
             requiredDocuments = requiredDocuments,
             isSynthetic = false,
-            createdAt = "Just now"
+            createdAt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         )
         localCreatedRequirements.add(0, newReq)
         _requirements.value = listOf(newReq) + _requirements.value.filter { it.id != newReq.id }
@@ -321,12 +431,34 @@ object MaterialRepository {
         return Pair(success, message)
     }
 
+    fun submitQuoteRequest(
+        material: MaterialItem,
+        buyerName: String,
+        buyerContact: String,
+        quantityTonnes: Double,
+        deliveryCity: String,
+        message: String
+    ): EnquiryQuoteRequest {
+        val rfq = EnquiryQuoteRequest(
+            id = "RFQ-${System.currentTimeMillis() % 100000}",
+            materialId = material.id,
+            materialName = material.materialName,
+            sellerName = material.sellerName,
+            buyerName = buyerName.ifBlank { "My Business Facility" },
+            buyerContact = buyerContact,
+            requestedQuantityTonnes = quantityTonnes,
+            deliveryCity = deliveryCity.ifBlank { "Punjab / Haryana Hub" },
+            message = message,
+            timestamp = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()).format(Date())
+        )
+        _quoteRequests.value = listOf(rfq) + _quoteRequests.value
+        return rfq
+    }
+
     suspend fun getMatches(materialId: String, radiusKm: Double = 300.0): MaterialMatchesResult? {
         val result = ReLoopApiClient.getMatchesForMaterial(materialId, radiusKm)
         if (result != null) return result
 
-        // If specific material UUID is not on backend yet (e.g. locally created or seed),
-        // we can calculate intelligent fallback matches against our requirements!
         val targetMaterial = _materials.value.find { it.id == materialId } ?: seedMaterials.first()
         val candidateMatches = mutableListOf<IntelligentMatch>()
 
@@ -395,7 +527,6 @@ object MaterialRepository {
         val pathways = ReLoopApiClient.getReusePathways(materialName)
         if (pathways.isNotEmpty()) return pathways
 
-        // High-standard domain fallback pathways if offline
         return when {
             materialName.contains("Fly", true) -> listOf(
                 ReusePathway(
@@ -438,6 +569,20 @@ object MaterialRepository {
                     "IS 2549", true, listOf("MISTEEL2025")
                 )
             )
+            materialName.contains("Plastic", true) || materialName.contains("HDPE", true) -> listOf(
+                ReusePathway(
+                    "RP301", "Recycled Polymer Extrusion", "Non-Pressure Pipes & Conduits",
+                    listOf("melt_flow_index", "density", "ash_content"),
+                    "IS 4984 / IS 14535", true, listOf("CIPET2025")
+                )
+            )
+            materialName.contains("Paper", true) || materialName.contains("OCC", true) -> listOf(
+                ReusePathway(
+                    "RP401", "Secondary Fiber Packaging", "Kraft Fluting & Linerboard",
+                    listOf("burst_factor", "moisture_content", "outthrows"),
+                    "IS 1397", true, listOf("CPPRI2024")
+                )
+            )
             else -> listOf(
                 ReusePathway(
                     "RP999", "Industrial Symbiosis", "Direct Secondary Feedstock",
@@ -452,7 +597,7 @@ object MaterialRepository {
         lat1: Double, lon1: Double,
         lat2: Double, lon2: Double
     ): Double {
-        val r = 6371.0 // Earth radius in km
+        val r = 6371.0
         val dLat = Math.toRadians(lat2 - lat1)
         val dLon = Math.toRadians(lon2 - lon1)
         val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +

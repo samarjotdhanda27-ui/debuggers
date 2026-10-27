@@ -10,6 +10,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,11 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.debuggers.reloop.data.model.*
 import com.debuggers.reloop.data.repository.MaterialRepository
-import com.debuggers.reloop.ui.components.*
+import com.debuggers.reloop.ui.components.QrCodeView
+import com.debuggers.reloop.ui.components.RequestQuoteDialog
 import com.debuggers.reloop.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -35,17 +40,18 @@ fun MaterialDetailScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     var selectedTab by remember { mutableStateOf(initialTab) }
+    var showQuoteDialog by remember { mutableStateOf(false) }
+    var quoteSubmittedNotice by remember { mutableStateOf<String?>(null) }
 
-    // State for Live Matches tab
+    // Live AI Matches State
     var searchRadiusKm by remember { mutableStateOf(300.0) }
     var matchesResult by remember { mutableStateOf<MaterialMatchesResult?>(null) }
     var isLoadingMatches by remember { mutableStateOf(false) }
 
-    // State for Circular Pathways tab
+    // Live Reuse Pathways State
     var pathwaysList by remember { mutableStateOf<List<ReusePathway>>(emptyList()) }
     var isLoadingPathways by remember { mutableStateOf(false) }
 
-    // Fetch Matches when tab is active or radius changes
     LaunchedEffect(selectedTab, searchRadiusKm) {
         if (selectedTab == 1) {
             isLoadingMatches = true
@@ -58,199 +64,390 @@ fun MaterialDetailScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(ReLoopPageBg)
     ) {
-        // Top Bar
-        Surface(
-            color = Color.White,
-            border = BorderStroke(0.5.dp, ReLoopBorder),
-            shadowElevation = 1.dp
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Top App Bar
+            Surface(
+                color = Color.White,
+                border = BorderStroke(0.5.dp, ReLoopBorder),
+                shadowElevation = 0.5.dp
             ) {
-                IconButton(
-                    onClick = onBack,
+                Row(
                     modifier = Modifier
-                        .size(38.dp)
-                        .background(ReLoopPageBg, RoundedCornerShape(10.dp))
-                        .border(1.dp, ReLoopBorder, RoundedCornerShape(10.dp))
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Go back", tint = TextDark)
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = item.materialName,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = TextDark
-                    )
-                    Text(
-                        text = item.sellerName,
-                        fontSize = 12.sp,
-                        color = TextMuted
-                    )
-                }
-                Surface(
-                    color = if (item.isSynthetic) DemoAmberBg else LiveGreenBg,
-                    shape = RoundedCornerShape(6.dp)
-                ) {
-                    Text(
-                        text = if (item.isSynthetic) "DEMO" else "VERIFIED",
-                        color = if (item.isSynthetic) DemoAmber else LiveGreen,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                    )
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(ReLoopPageBg, RoundedCornerShape(8.dp))
+                            .border(1.dp, ReLoopBorder, RoundedCornerShape(8.dp))
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextDark)
+                    }
+
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = item.materialName,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextDark,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "${item.category} · ${item.displayLocation}",
+                            fontSize = 11.5.sp,
+                            color = TextMuted
+                        )
+                    }
+
+                    if (item.isVerifiedListing) {
+                        Surface(color = StatusVerifiedBg, shape = RoundedCornerShape(4.dp)) {
+                            Text(
+                                text = "VERIFIED",
+                                color = StatusVerified,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
                 }
             }
-        }
 
-        // 4 Tabs: Specs, Matches, Pathways, Passport
-        ScrollableTabRow(
-            selectedTabIndex = selectedTab,
-            containerColor = Color.White,
-            contentColor = BrandForest,
-            edgePadding = 16.dp,
-            divider = { HorizontalDivider(color = ReLoopBorder) }
-        ) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = { Text("Specifications", fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal) }
-            )
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("AI Matches", fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal)
-                        Surface(color = BrandLime, shape = CircleShape) {
-                            Box(modifier = Modifier.size(6.dp))
-                        }
-                    }
-                }
-            )
-            Tab(
-                selected = selectedTab == 2,
-                onClick = { selectedTab = 2 },
-                text = { Text("Reuse Pathways", fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal) }
-            )
-            Tab(
-                selected = selectedTab == 3,
-                onClick = { selectedTab = 3 },
-                text = { Text("Material Passport", fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal) }
-            )
-        }
-
-        // Tab Content
-        Box(modifier = Modifier.fillMaxSize()) {
-            when (selectedTab) {
-                0 -> SpecificationsTab(item, onFindMatches = { selectedTab = 1 }, onViewPassport = { selectedTab = 3 })
-                1 -> MatchesTab(
-                    item = item,
-                    searchRadiusKm = searchRadiusKm,
-                    onRadiusChange = { searchRadiusKm = it },
-                    matchesResult = matchesResult,
-                    isLoading = isLoadingMatches,
-                    onRefreshMatches = {
-                        coroutineScope.launch {
-                            isLoadingMatches = true
-                            matchesResult = MaterialRepository.getMatches(item.id, searchRadiusKm)
-                            isLoadingMatches = false
-                        }
-                    }
+            // Tab Navigation Row
+            ScrollableTabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.White,
+                contentColor = BrandForest,
+                edgePadding = 16.dp,
+                divider = { HorizontalDivider(color = ReLoopBorder, thickness = 0.5.dp) }
+            ) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = { Text("Product Details", fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp) }
                 )
-                2 -> PathwaysTab(pathwaysList, isLoading = isLoadingPathways, materialName = item.materialName)
-                3 -> PassportTab(item, onViewFull = { onViewPassportFull(item) })
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = { Text("Matching Buyers", fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp) }
+                )
+                Tab(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    text = { Text("Reuse Pathways", fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp) }
+                )
+                Tab(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
+                    text = { Text("Material Passport", fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp) }
+                )
             }
+
+            // Notice banner if quote submitted
+            quoteSubmittedNotice?.let { notice ->
+                Surface(
+                    color = StatusVerifiedBg,
+                    border = BorderStroke(1.dp, StatusVerified.copy(alpha = 0.3f)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(notice, fontSize = 12.sp, color = StatusVerified, fontWeight = FontWeight.SemiBold)
+                        IconButton(onClick = { quoteSubmittedNotice = null }, modifier = Modifier.size(20.dp)) {
+                            Icon(Icons.Default.Close, null, tint = StatusVerified, modifier = Modifier.size(14.dp))
+                        }
+                    }
+                }
+            }
+
+            // Tab View Body
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                when (selectedTab) {
+                    0 -> ProductDetailsTab(item = item, onExploreMatches = { selectedTab = 1 })
+                    1 -> MatchingBuyersTab(
+                        item = item,
+                        radiusKm = searchRadiusKm,
+                        onRadiusChange = { searchRadiusKm = it },
+                        result = matchesResult,
+                        isLoading = isLoadingMatches,
+                        onRefresh = {
+                            coroutineScope.launch {
+                                isLoadingMatches = true
+                                matchesResult = MaterialRepository.getMatches(item.id, searchRadiusKm)
+                                isLoadingMatches = false
+                            }
+                        }
+                    )
+                    2 -> ReusePathwaysTab(pathways = pathwaysList, isLoading = isLoadingPathways, materialName = item.materialName)
+                    3 -> MaterialPassportTab(item = item, onExpandPassport = { onViewPassportFull(item) })
+                }
+            }
+
+            // Fixed Sticky Bottom Action Bar (Amazon/Flipkart Style)
+            Surface(
+                color = Color.White,
+                border = BorderStroke(0.5.dp, ReLoopBorder),
+                shadowElevation = 4.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("PRICE & LOT", fontSize = 9.sp, color = TextSubtle, fontWeight = FontWeight.Bold, letterSpacing = 0.4.sp)
+                        Text(
+                            text = item.priceDisplay,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = BrandForest
+                        )
+                        Text(
+                            text = "${item.displayQuantity} available",
+                            fontSize = 11.5.sp,
+                            color = TextMuted
+                        )
+                    }
+
+                    Button(
+                        onClick = { showQuoteDialog = true },
+                        modifier = Modifier
+                            .weight(1.2f)
+                            .height(44.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandForest)
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Send, null, modifier = Modifier.size(15.dp), tint = BrandLime)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Request Quote", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        // Enquiry / RFQ Modal
+        if (showQuoteDialog) {
+            RequestQuoteDialog(
+                material = item,
+                onDismiss = { showQuoteDialog = false },
+                onSubmit = { qty, city, contact, message ->
+                    MaterialRepository.submitQuoteRequest(
+                        material = item,
+                        buyerName = contact.split("·").firstOrNull()?.trim() ?: "My Business",
+                        buyerContact = contact,
+                        quantityTonnes = qty,
+                        deliveryCity = city,
+                        message = message
+                    )
+                    quoteSubmittedNotice = "Official RFQ submitted to ${item.sellerName} for $qty ${item.unit}."
+                    showQuoteDialog = false
+                }
+            )
         }
     }
 }
 
 @Composable
-private fun SpecificationsTab(
+private fun ProductDetailsTab(
     item: MaterialItem,
-    onFindMatches: () -> Unit,
-    onViewPassport: () -> Unit
+    onExploreMatches: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Hero Overview Card
+        // Material Industrial Hero Banner
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 border = BorderStroke(1.dp, ReLoopBorder)
             ) {
                 Column(
                     modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
-                        Column {
-                            Text("CATEGORY & SECTOR", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = TextSubtle, letterSpacing = 0.5.sp)
-                            Spacer(Modifier.height(3.dp))
-                            Text(item.sourceIndustry, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = BrandForest)
+                        Column(Modifier.weight(1f)) {
+                            Surface(color = ReLoopSurfaceSubtle, shape = RoundedCornerShape(4.dp)) {
+                                Text(
+                                    text = item.category.uppercase(),
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextMuted,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = item.materialName,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TextDark
+                            )
+                            Text(
+                                text = "Origin Industry: ${item.sourceIndustry}",
+                                fontSize = 12.sp,
+                                color = TextMuted
+                            )
                         }
+
                         Surface(
                             color = BrandForest,
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.size(44.dp)
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.size(50.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text(item.symbol, color = BrandLime, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text(
+                                    text = item.symbol,
+                                    color = BrandLime,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                )
                             }
                         }
                     }
 
-                    HorizontalDivider(color = ReLoopBorder)
+                    HorizontalDivider(color = ReLoopBorder, thickness = 0.5.dp)
 
-                    DetailRow("Available Lot Size", item.displayQuantity, isEmphasized = true)
-                    DetailRow("Origin Hub", item.displayLocation)
-                    DetailRow("Geo Coordinates", "%.3f° N, %.3f° E".format(item.latitude, item.longitude))
-                    DetailRow("Backend ID", item.id.take(18) + if (item.id.length > 18) "…" else "")
+                    // Price & Availability Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text("PRICING BASIS", fontSize = 9.sp, color = TextSubtle, fontWeight = FontWeight.SemiBold)
+                            Text(item.priceDisplay, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = BrandForest)
+                            Text(item.pricingBasis, fontSize = 11.sp, color = TextMuted)
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("TOTAL LOT AVAILABLE", fontSize = 9.sp, color = TextSubtle, fontWeight = FontWeight.SemiBold)
+                            Text(item.displayQuantity, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                            Text(item.availabilityStatus, fontSize = 11.sp, color = StatusVerified)
+                        }
+                    }
                 }
             }
         }
 
-        // Technical Properties Card
+        // Supplier & Logistics Details Card
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 border = BorderStroke(1.dp, ReLoopBorder)
             ) {
                 Column(
-                    modifier = Modifier.padding(18.dp),
+                    modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("LABORATORY TECHNICAL PARAMETERS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextSubtle, letterSpacing = 0.5.sp)
+                    Text(
+                        "SUPPLIER & ORIGIN FACILITY",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSubtle,
+                        letterSpacing = 0.5.sp
+                    )
+
+                    SpecRow("Generating Facility", item.sellerName)
+                    SpecRow("Collection Hub", item.displayLocation)
+                    SpecRow("Geo Coordinates", "%.3f° N, %.3f° E".format(item.latitude, item.longitude))
+                    SpecRow("Listing Identifier", item.id.take(16) + if (item.id.length > 16) "…" else "")
+                }
+            }
+        }
+
+        // Material Description Card
+        item {
+            Card(
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, ReLoopBorder)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "MATERIAL DESCRIPTION & HANDLING",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSubtle,
+                        letterSpacing = 0.5.sp
+                    )
+                    Text(
+                        text = item.description,
+                        fontSize = 13.sp,
+                        color = TextDark,
+                        lineHeight = 19.sp
+                    )
+                }
+            }
+        }
+
+        // Technical Specifications Table Card
+        item {
+            Card(
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, ReLoopBorder)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        "TECHNICAL & CHEMICAL PARAMETERS",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSubtle,
+                        letterSpacing = 0.5.sp
+                    )
+
+                    item.grade?.let { SpecRow("Material Grade", it) }
+                    item.condition?.let { SpecRow("Physical Condition", it) }
 
                     if (item.properties.isNotEmpty()) {
                         item.properties.forEach { (key, value) ->
-                            DetailRow(
-                                label = key.replace("_", " ").capitalizeWords(),
-                                value = value.toString()
-                            )
+                            if (key !in listOf("grade", "condition", "description", "price", "price_per_tonne", "pricing_basis", "availability", "unit")) {
+                                SpecRow(
+                                    label = key.replace("_", " ").split(" ").joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } },
+                                    value = value.toString()
+                                )
+                            }
                         }
                     } else {
                         Text(
-                            "Baseline technical properties under laboratory analysis. Complete specification report available in digital passport.",
+                            "Standard batch parameters subject to laboratory inspection certificate.",
                             fontSize = 12.sp,
                             color = TextMuted
                         )
@@ -259,18 +456,24 @@ private fun SpecificationsTab(
             }
         }
 
-        // Available Quality Documents
+        // Quality Documents & Verification
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 border = BorderStroke(1.dp, ReLoopBorder)
             ) {
                 Column(
-                    modifier = Modifier.padding(18.dp),
+                    modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("AVAILABLE REGULATORY DOCUMENTS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextSubtle, letterSpacing = 0.5.sp)
+                    Text(
+                        "QUALITY DOCUMENTATION & CERTIFICATES",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSubtle,
+                        letterSpacing = 0.5.sp
+                    )
 
                     if (item.availableDocuments.isNotEmpty()) {
                         item.availableDocuments.forEach { doc ->
@@ -278,8 +481,16 @@ private fun SpecificationsTab(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.Default.CheckCircle, null, tint = LiveGreen, modifier = Modifier.size(16.dp))
-                                Text(doc, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextDark)
+                                Icon(Icons.Default.CheckCircle, null, tint = StatusVerified, modifier = Modifier.size(15.dp))
+                                Text(doc, fontSize = 12.5.sp, fontWeight = FontWeight.Medium, color = TextDark)
+                                Surface(color = ReLoopSurfaceSubtle, shape = RoundedCornerShape(4.dp)) {
+                                    Text(
+                                        text = if (item.isVerifiedListing) "Verified" else "Seller Declared",
+                                        fontSize = 9.sp,
+                                        color = TextMuted,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
                             }
                         }
                     } else {
@@ -287,40 +498,10 @@ private fun SpecificationsTab(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.Info, null, tint = DemoAmber, modifier = Modifier.size(16.dp))
-                            Text("Pending laboratory upload.", fontSize = 12.5.sp, color = TextMuted)
+                            Icon(Icons.Default.Info, null, tint = TextMuted, modifier = Modifier.size(15.dp))
+                            Text("No documents uploaded yet by supplier.", fontSize = 12.5.sp, color = TextMuted)
                         }
                     }
-                }
-            }
-        }
-
-        // Action Buttons
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Button(
-                    onClick = onFindMatches,
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandForest)
-                ) {
-                    Icon(Icons.Default.CompareArrows, null, tint = BrandLime)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Scan Matches", fontWeight = FontWeight.Bold)
-                }
-
-                OutlinedButton(
-                    onClick = onViewPassport,
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, BrandForest)
-                ) {
-                    Icon(Icons.Default.QrCode2, null, tint = BrandForest)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Passport", fontWeight = FontWeight.Bold, color = BrandForest)
                 }
             }
         }
@@ -328,46 +509,41 @@ private fun SpecificationsTab(
 }
 
 @Composable
-private fun MatchesTab(
+private fun MatchingBuyersTab(
     item: MaterialItem,
-    searchRadiusKm: Double,
+    radiusKm: Double,
     onRadiusChange: (Double) -> Unit,
-    matchesResult: MaterialMatchesResult?,
+    result: MaterialMatchesResult?,
     isLoading: Boolean,
-    onRefreshMatches: () -> Unit
+    onRefresh: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Spatial Radius Control Card
+        // Radius Slider Control
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 border = BorderStroke(1.dp, ReLoopBorder)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("SEARCH RADIUS (HAIVERSINE)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextSubtle, letterSpacing = 0.5.sp)
-                        Text(
-                            "${searchRadiusKm.toInt()} km",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = BrandForest
-                        )
+                        Text("TRANSIT SEARCH RADIUS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextSubtle)
+                        Text("${radiusKm.toInt()} km", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = BrandForest)
                     }
 
                     Slider(
-                        value = searchRadiusKm.toFloat(),
+                        value = radiusKm.toFloat(),
                         onValueChange = { onRadiusChange(it.toDouble()) },
                         valueRange = 50f..500f,
                         steps = 8,
@@ -382,9 +558,9 @@ private fun MatchesTab(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("50 km", fontSize = 11.sp, color = TextMuted)
-                        Text("300 km (Standard)", fontSize = 11.sp, color = TextMuted)
-                        Text("500 km", fontSize = 11.sp, color = TextMuted)
+                        Text("50 km", fontSize = 10.sp, color = TextMuted)
+                        Text("300 km (Optimal B2B transit)", fontSize = 10.sp, color = TextMuted)
+                        Text("500 km", fontSize = 10.sp, color = TextMuted)
                     }
                 }
             }
@@ -392,34 +568,28 @@ private fun MatchesTab(
 
         if (isLoading) {
             item {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(40.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         CircularProgressIndicator(color = BrandForest)
-                        Text("Computing spatial & property compatibility…", color = TextMuted, fontSize = 13.sp)
+                        Text("Evaluating spatial & specification matches…", fontSize = 12.sp, color = TextMuted)
                     }
                 }
             }
-        } else if (matchesResult == null || matchesResult.matches.isEmpty()) {
+        } else if (result == null || result.matches.isEmpty()) {
             item {
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     border = BorderStroke(1.dp, ReLoopBorder)
                 ) {
                     Column(
                         modifier = Modifier.padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.Radar, null, tint = TextSubtle, modifier = Modifier.size(48.dp))
-                        Text("No Buyers Found Within ${searchRadiusKm.toInt()} km", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextDark)
-                        Text("Try extending the search radius slider above to scan broader industrial clusters.", fontSize = 12.5.sp, color = TextMuted, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        Icon(Icons.Default.Radar, null, tint = TextMuted, modifier = Modifier.size(40.dp))
+                        Text("No Buyers Found Within ${radiusKm.toInt()} km", fontWeight = FontWeight.Bold, fontSize = 14.5.sp, color = TextDark)
+                        Text("Increase the search radius slider above to scan broader manufacturing hubs.", fontSize = 12.sp, color = TextMuted, textAlign = TextAlign.Center)
                     }
                 }
             }
@@ -430,33 +600,71 @@ private fun MatchesTab(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "${matchesResult.matches.size} Qualified Circular Matches",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = TextDark
-                    )
-                    IconButton(onClick = onRefreshMatches) {
-                        Icon(Icons.Default.Refresh, null, tint = BrandForest, modifier = Modifier.size(18.dp))
+                    Text("${result.matches.size} Potential Matching Facilities", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark)
+                    IconButton(onClick = onRefresh, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Refresh, null, tint = BrandForest, modifier = Modifier.size(16.dp))
                     }
                 }
             }
 
-            items(matchesResult.matches) { match ->
-                IntelligentMatchCard(
-                    match = match,
-                    onContactBuyer = {}
-                )
-            }
+            items(result.matches) { match ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, ReLoopBorder)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(match.buyerName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextDark)
+                                Text(match.buyerIndustry, fontSize = 12.sp, color = TextMuted)
+                            }
+                            Surface(
+                                color = StatusVerifiedBg,
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    text = "${match.compatibilityScore.toInt()}% FIT",
+                                    color = StatusVerified,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
 
-            if (matchesResult.disclaimer.isNotEmpty()) {
-                item {
-                    Text(
-                        matchesResult.disclaimer,
-                        fontSize = 11.sp,
-                        color = TextSubtle,
-                        lineHeight = 15.sp
-                    )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(ReLoopPageBg, RoundedCornerShape(6.dp))
+                                .padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Transit: ${match.distanceKm} km", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = BrandForest)
+                            Text("Demand: ${match.requiredQuantityTonnes.toInt()} MT", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextDark)
+                        }
+
+                        Text("Application: ${match.recommendedApplication}", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = TextDark)
+
+                        if (match.explanations.isNotEmpty()) {
+                            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                match.explanations.take(2).forEach { exp ->
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("•", color = BrandForest, fontWeight = FontWeight.Bold)
+                                        Text(exp, fontSize = 11.5.sp, color = TextMuted)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -464,7 +672,7 @@ private fun MatchesTab(
 }
 
 @Composable
-private fun PathwaysTab(
+private fun ReusePathwaysTab(
     pathways: List<ReusePathway>,
     isLoading: Boolean,
     materialName: String
@@ -475,129 +683,144 @@ private fun PathwaysTab(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
+            Text("Circular Substitution Pathways", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextDark)
             Text(
-                text = "Research-Backed Circular Pathways",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = "Approved industrial substitution pathways with BIS / IRC standard specifications for $materialName.",
-                fontSize = 12.5.sp,
+                "Standard industrial reuse applications defined by BIS / IRC specifications for $materialName.",
+                fontSize = 12.sp,
                 color = TextMuted
             )
         }
 
         if (isLoading) {
             item {
-                Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = BrandForest)
                 }
             }
         } else if (pathways.isEmpty()) {
             item {
                 Card(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     border = BorderStroke(1.dp, ReLoopBorder)
                 ) {
                     Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("No verified pathways registered for this specific material category.", color = TextMuted, fontSize = 13.sp)
+                        Text("No verified pathways registered for this material.", color = TextMuted, fontSize = 12.5.sp)
                     }
                 }
             }
         } else {
             items(pathways) { pathway ->
-                PathwayCard(pathway)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, ReLoopBorder)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(pathway.application, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, color = BrandForest)
+                            Surface(color = ReLoopSurfaceSubtle, shape = RoundedCornerShape(4.dp)) {
+                                Text(pathway.id, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                            }
+                        }
+                        Text("Target Industry: ${pathway.buyerIndustry}", fontSize = 12.sp, color = TextMuted)
+                        pathway.referenceStandard?.let {
+                            Surface(color = ReLoopPageBg, shape = RoundedCornerShape(4.dp)) {
+                                Text("Standard: $it", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = TextDark, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun PassportTab(
+private fun MaterialPassportTab(
     item: MaterialItem,
-    onViewFull: () -> Unit
+    onExpandPassport: () -> Unit
 ) {
-    val passportContent = "reloop://passport/${item.id}?mat=${item.materialName}&seller=${item.sellerName}&qty=${item.quantityTonnes}"
+    val passportPayload = "reloop://passport/${item.id}?mat=${item.materialName}&seller=${item.sellerName}&qty=${item.quantityTonnes}"
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // QR Card
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 border = BorderStroke(1.dp, ReLoopBorder)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier.padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
                         "DIGITAL PRODUCT PASSPORT (DPP)",
-                        fontSize = 10.5.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = BrandForest,
-                        letterSpacing = 0.8.sp
+                        letterSpacing = 0.5.sp
                     )
 
-                    // Scannable QR Code
                     QrCodeView(
-                        content = passportContent,
-                        size = 200.dp,
+                        content = passportPayload,
+                        size = 180.dp,
                         qrColor = BrandForest
                     )
 
                     Text(
                         item.materialName,
-                        fontSize = 18.sp,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextDark
                     )
 
                     Text(
-                        "Scan with any mobile camera to verify provenance hash & chemical characterization.",
-                        fontSize = 12.sp,
+                        "Scannable traceability record certifying batch provenance and specification profile.",
+                        fontSize = 11.5.sp,
                         color = TextMuted,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        textAlign = TextAlign.Center
                     )
 
                     Button(
-                        onClick = onViewFull,
+                        onClick = onExpandPassport,
                         colors = ButtonDefaults.buttonColors(containerColor = BrandForest),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(8.dp)
                     ) {
-                        Icon(Icons.Default.Fullscreen, null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Expand Fullscreen Passport")
+                        Text("View Full Traceability Record", fontSize = 12.sp)
                     }
                 }
             }
         }
 
-        // Metadata Card
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 border = BorderStroke(1.dp, ReLoopBorder)
             ) {
                 Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("CIRCULAR PASSPORT ATTRIBUTES", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextSubtle, letterSpacing = 0.5.sp)
-                    DetailRow("Passport ID", "DPP-${item.id.take(8).uppercase()}")
-                    DetailRow("Verification Standard", "ISO 14021 / EU DPP Spec")
-                    DetailRow("Supply Chain Node", item.sellerName)
-                    DetailRow("Batch Integrity", if (item.isSynthetic) "Synthetic Demo Hash" else "Cryptographically Sealed")
-                    DetailRow("Custody Status", "Ready for Dispatch")
+                    Text("PASSPORT ATTRIBUTES", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextSubtle)
+                    SpecRow("Passport Identifier", "DPP-${item.id.take(8).uppercase()}")
+                    SpecRow("Generating Facility", item.sellerName)
+                    SpecRow("Dispatch Readiness", item.availabilityStatus)
+                    SpecRow("Verification Standard", if (item.isVerifiedListing) "Certified Live Listing" else "Seller Declared")
                 }
             }
         }
@@ -605,21 +828,15 @@ private fun PassportTab(
 }
 
 @Composable
-private fun DetailRow(label: String, value: String, isEmphasized: Boolean = false) {
+private fun SpecRow(label: String, value: String) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, fontSize = 13.sp, color = TextMuted)
-        Text(
-            value,
-            fontSize = if (isEmphasized) 15.sp else 13.sp,
-            fontWeight = if (isEmphasized) FontWeight.Bold else FontWeight.SemiBold,
-            color = if (isEmphasized) BrandForest else TextDark
-        )
+        Text(label, fontSize = 12.5.sp, color = TextMuted)
+        Text(value, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = TextDark)
     }
 }
-
-private fun String.capitalizeWords(): String =
-    split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }

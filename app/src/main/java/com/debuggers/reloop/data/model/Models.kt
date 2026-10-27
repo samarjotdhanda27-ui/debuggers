@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Material item representing a seller listing in the ReLoop marketplace.
+ * Material item representing an industrial B2B listing in ReLoop marketplace.
  */
 data class MaterialItem(
     val id: String,
@@ -22,30 +22,69 @@ data class MaterialItem(
     val createdAt: String = ""
 ) {
     val displayQuantity: String
-        get() = "${quantityTonnes.toInt().takeIf { it.toDouble() == quantityTonnes } ?: quantityTonnes} tonnes"
+        get() = "${quantityTonnes.toInt().takeIf { it.toDouble() == quantityTonnes } ?: quantityTonnes} $unit"
 
     val displayLocation: String
-        get() = if (city.isNotEmpty() && state.isNotEmpty()) "$city, $state" else city.ifEmpty { state }
+        get() = if (city.isNotEmpty() && state.isNotEmpty()) "$city, $state" else city.ifEmpty { state }.ifEmpty { "India" }
 
-    val shortCategory: String
-        get() = when {
-            materialName.contains("Fly", ignoreCase = true) || sourceIndustry.contains("Thermal", ignoreCase = true) -> "Mineral By-Product"
-            materialName.contains("Sand", ignoreCase = true) || sourceIndustry.contains("Foundry", ignoreCase = true) -> "Foundry By-Product"
-            materialName.contains("Scrap", ignoreCase = true) || sourceIndustry.contains("Steel", ignoreCase = true) -> "Secondary Metal"
-            materialName.contains("Water", ignoreCase = true) || sourceIndustry.contains("Process", ignoreCase = true) -> "Process Water"
-            materialName.contains("Slag", ignoreCase = true) -> "Furnace Slag"
-            else -> sourceIndustry.ifEmpty { "Industrial By-Product" }
+    val unit: String
+        get() = properties["unit"]?.toString() ?: "tonnes"
+
+    val grade: String?
+        get() = properties["grade"]?.toString()
+            ?: properties["material_grade"]?.toString()
+            ?: properties["fineness"]?.let { "Fineness: $it m²/kg" }
+
+    val condition: String?
+        get() = properties["condition"]?.toString()
+            ?: properties["moisture"]?.let { "Moisture: $it%" }
+
+    val pricePerTon: Double?
+        get() = (properties["price_per_tonne"] as? Number)?.toDouble()
+            ?: (properties["price"] as? Number)?.toDouble()
+
+    val pricingBasis: String
+        get() = properties["pricing_basis"]?.toString() ?: "Ex-works / In-situ"
+
+    val priceDisplay: String
+        get() = pricePerTon?.let { "₹${String.format("%,.0f", it)} / tonne" } ?: "Request a quote"
+
+    val availabilityStatus: String
+        get() = properties["availability"]?.toString() ?: "Available for Dispatch"
+
+    val description: String
+        get() = properties["description"]?.toString()
+            ?: "Industrial secondary material available for circular reuse and remanufacturing. Material specifications subject to batch inspection."
+
+    val category: String
+        get() {
+            val name = materialName.lowercase()
+            val ind = sourceIndustry.lowercase()
+            return when {
+                name.contains("metal") || name.contains("scrap") || name.contains("steel") || name.contains("iron") || name.contains("copper") || name.contains("aluminum") || ind.contains("steel") -> "Metals"
+                name.contains("plastic") || name.contains("hdpe") || name.contains("pet") || name.contains("pvc") || name.contains("polymer") -> "Plastics"
+                name.contains("concrete") || name.contains("aggregate") || name.contains("sand") || name.contains("brick") || ind.contains("construction") || ind.contains("cement") -> "Construction"
+                name.contains("chemical") || name.contains("acid") || name.contains("solvent") || name.contains("water") || name.contains("effluent") || ind.contains("chemical") -> "Chemicals"
+                name.contains("paper") || name.contains("cardboard") || name.contains("occ") || name.contains("pulp") -> "Paper"
+                name.contains("fly ash") || name.contains("slag") || name.contains("mineral") || ind.contains("thermal") || ind.contains("foundry") -> "Minerals & By-Products"
+                else -> sourceIndustry.ifEmpty { "Industrial Materials" }
+            }
         }
 
     val symbol: String
         get() = when {
             materialName.contains("Fly", ignoreCase = true) -> "FA"
             materialName.contains("Foundry", ignoreCase = true) || materialName.contains("Sand", ignoreCase = true) -> "FS"
-            materialName.contains("Metal", ignoreCase = true) || materialName.contains("Scrap", ignoreCase = true) -> "MS"
+            materialName.contains("Scrap", ignoreCase = true) || materialName.contains("Metal", ignoreCase = true) -> "MS"
+            materialName.contains("HDPE", ignoreCase = true) || materialName.contains("Plastic", ignoreCase = true) -> "PL"
+            materialName.contains("Acid", ignoreCase = true) || materialName.contains("Chemical", ignoreCase = true) -> "CH"
+            materialName.contains("Paper", ignoreCase = true) || materialName.contains("OCC", ignoreCase = true) -> "PA"
             materialName.contains("Water", ignoreCase = true) -> "PW"
-            materialName.contains("Slag", ignoreCase = true) -> "SL"
             else -> materialName.take(2).uppercase()
         }
+
+    val isVerifiedListing: Boolean
+        get() = !isSynthetic
 
     companion object {
         fun fromJson(obj: JSONObject): MaterialItem {
@@ -69,9 +108,9 @@ data class MaterialItem(
 
             return MaterialItem(
                 id = obj.optString("id", System.currentTimeMillis().toString()),
-                sellerName = obj.optString("seller_name", "Unknown Facility"),
-                materialName = obj.optString("material_name", "Unnamed Material"),
-                sourceIndustry = obj.optString("source_industry", "Industrial"),
+                sellerName = obj.optString("seller_name", "Industrial Supplier"),
+                materialName = obj.optString("material_name", "Industrial Material"),
+                sourceIndustry = obj.optString("source_industry", "Industrial Processing"),
                 quantityTonnes = obj.optDouble("quantity_tonnes", 0.0),
                 city = obj.optString("city", ""),
                 state = obj.optString("state", ""),
@@ -87,7 +126,7 @@ data class MaterialItem(
 }
 
 /**
- * Requirement item representing buyer demand in the ReLoop marketplace.
+ * Requirement item representing buyer demand in ReLoop marketplace.
  */
 data class RequirementItem(
     val id: String,
@@ -108,7 +147,7 @@ data class RequirementItem(
         get() = "${requiredQuantityTonnes.toInt().takeIf { it.toDouble() == requiredQuantityTonnes } ?: requiredQuantityTonnes} tonnes"
 
     val displayLocation: String
-        get() = if (city.isNotEmpty() && state.isNotEmpty()) "$city, $state" else city.ifEmpty { state }
+        get() = if (city.isNotEmpty() && state.isNotEmpty()) "$city, $state" else city.ifEmpty { state }.ifEmpty { "India" }
 
     companion object {
         fun fromJson(obj: JSONObject): RequirementItem {
@@ -132,9 +171,9 @@ data class RequirementItem(
 
             return RequirementItem(
                 id = obj.optString("id", System.currentTimeMillis().toString()),
-                buyerName = obj.optString("buyer_name", "Unknown Buyer"),
-                buyerIndustry = obj.optString("buyer_industry", "Industrial"),
-                requiredMaterial = obj.optString("required_material", "Material"),
+                buyerName = obj.optString("buyer_name", "Procuring Facility"),
+                buyerIndustry = obj.optString("buyer_industry", "Manufacturing"),
+                requiredMaterial = obj.optString("required_material", "Raw Feedstock"),
                 requiredQuantityTonnes = obj.optDouble("required_quantity_tonnes", 0.0),
                 city = obj.optString("city", ""),
                 state = obj.optString("state", ""),
@@ -281,6 +320,23 @@ data class ReusePathway(
         }
     }
 }
+
+/**
+ * Real B2B Enquiry / Request for Quote (RFQ) record.
+ */
+data class EnquiryQuoteRequest(
+    val id: String,
+    val materialId: String,
+    val materialName: String,
+    val sellerName: String,
+    val buyerName: String,
+    val buyerContact: String,
+    val requestedQuantityTonnes: Double,
+    val deliveryCity: String,
+    val message: String,
+    val timestamp: String,
+    val status: String = "RFQ Submitted"
+)
 
 /**
  * Server health information.
