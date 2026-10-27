@@ -46,6 +46,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation("com.google.zxing:core:3.5.3")
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     testImplementation(libs.junit)
 

@@ -38,7 +38,8 @@ fun HomeScreen(
     onPostRequirement: () -> Unit,
     onOpenMaterial: (MaterialItem) -> Unit,
     onViewPassport: (MaterialItem) -> Unit,
-    onNavigateToExplore: () -> Unit
+    onNavigateToExplore: () -> Unit,
+    onOpenMap: ((String?) -> Unit)? = null
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
@@ -155,6 +156,16 @@ fun HomeScreen(
                 }
             }
 
+            // North India Industrial Transit Corridor Map Banner
+            item {
+                RegionalCorridorBanner(
+                    activeHubsCount = 12,
+                    activeLotsCount = materials.size,
+                    onOpenMap = { onOpenMap?.invoke(null) },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                )
+            }
+
             // Sleek B2B Action Bar (List Material / Post Demand)
             item {
                 SupplierPortalCard(
@@ -267,7 +278,8 @@ fun HomeScreen(
                         MaterialListingCard(
                             item = item,
                             onClick = { onOpenMaterial(item) },
-                            onRequestQuote = { materialForQuote = item }
+                            onRequestQuote = { materialForQuote = item },
+                            onViewOnMap = { onOpenMap?.invoke(item.id) }
                         )
                     }
                 }

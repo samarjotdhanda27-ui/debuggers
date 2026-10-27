@@ -6,13 +6,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val ReloopColorScheme = lightColorScheme(
-    primary = BrandPrimary,
+    primary = BrandCobalt,
     onPrimary = Color.White,
-    primaryContainer = BrandMintBg,
-    onPrimaryContainer = BrandPrimaryDark,
-    secondary = BrandEmerald,
+    primaryContainer = BrandCobaltBg,
+    onPrimaryContainer = BrandNavyDark,
+    secondary = BrandNavy,
     onSecondary = Color.White,
-    tertiary = BrandLime,
+    tertiary = BrandEmerald,
     onTertiary = Color.White,
     background = ReLoopPageBg,
     onBackground = TextDark,

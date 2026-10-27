@@ -78,6 +78,7 @@ fun ReLoopAppRoot() {
     var selectedMaterial by remember { mutableStateOf<MaterialItem?>(null) }
     var detailTab by remember { mutableStateOf(0) }
     var showDiagnosticsDialog by remember { mutableStateOf(false) }
+    var mapFocusMaterialId by remember { mutableStateOf<String?>(null) }
 
     // Initial background sync with live backend
     LaunchedEffect(Unit) {
@@ -109,7 +110,7 @@ fun ReLoopAppRoot() {
     val bottomNavDestinations = listOf(
         AppDestination.HOME,
         AppDestination.EXPLORE,
-        AppDestination.LIST_MATERIAL,
+        AppDestination.MAP,
         AppDestination.PASSPORTS,
         AppDestination.PROFILE
     )
@@ -117,13 +118,28 @@ fun ReLoopAppRoot() {
     Scaffold(
         containerColor = ReLoopPageBg,
         topBar = {
-            if (currentScreen in bottomNavDestinations && currentScreen != AppDestination.LIST_MATERIAL && currentScreen != AppDestination.PASSPORTS) {
+            if (currentScreen in bottomNavDestinations && currentScreen != AppDestination.PASSPORTS) {
                 ReLoopTopBar(
                     serverHealth = serverHealth,
                     currentLocation = "Punjab Hub",
-                    onLocationClick = { navigateTo(AppDestination.MAP) },
+                    onLocationClick = { 
+                        mapFocusMaterialId = null
+                        navigateTo(AppDestination.MAP) 
+                    },
                     onHealthClick = { showDiagnosticsDialog = true },
                     onProfileClick = { navigateTo(AppDestination.PROFILE) }
+                )
+            }
+        },
+        floatingActionButton = {
+            if (currentScreen == AppDestination.HOME || currentScreen == AppDestination.EXPLORE) {
+                ExtendedFloatingActionButton(
+                    onClick = { navigateTo(AppDestination.LIST_MATERIAL) },
+                    containerColor = BrandCobalt,
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp),
+                    icon = { Icon(Icons.Default.Add, contentDescription = null, tint = Color.White) },
+                    text = { Text("List Material", fontWeight = FontWeight.Bold, fontSize = 13.sp) }
                 )
             }
         },
@@ -131,7 +147,12 @@ fun ReLoopAppRoot() {
             if (currentScreen in bottomNavDestinations) {
                 ReLoopBottomBar(
                     currentScreen = currentScreen,
-                    onSelectScreen = { currentScreen = it }
+                    onSelectScreen = { dest ->
+                        if (dest == AppDestination.MAP) {
+                            mapFocusMaterialId = null
+                        }
+                        currentScreen = dest
+                    }
                 )
             }
         }
@@ -156,19 +177,27 @@ fun ReLoopAppRoot() {
                     onPostRequirement = { navigateTo(AppDestination.POST_REQUIREMENT) },
                     onOpenMaterial = { item -> openMaterialDetails(item, tab = 0) },
                     onViewPassport = { item -> openMaterialDetails(item, tab = 3) },
-                    onNavigateToExplore = { currentScreen = AppDestination.EXPLORE }
+                    onNavigateToExplore = { currentScreen = AppDestination.EXPLORE },
+                    onOpenMap = { matId ->
+                        mapFocusMaterialId = matId
+                        navigateTo(AppDestination.MAP)
+                    }
                 )
 
                 AppDestination.EXPLORE -> DiscoverScreen(
                     materials = materials,
                     onOpenMaterial = { item -> openMaterialDetails(item, tab = 0) },
                     onViewPassport = { item -> openMaterialDetails(item, tab = 3) },
-                    onOpenMap = { navigateTo(AppDestination.MAP) }
+                    onOpenMap = { matId ->
+                        mapFocusMaterialId = matId
+                        navigateTo(AppDestination.MAP)
+                    }
                 )
 
                 AppDestination.MAP -> InteractiveMapScreen(
                     materials = materials,
                     requirements = requirements,
+                    initialMaterialId = mapFocusMaterialId,
                     onBack = { currentScreen = previousScreen },
                     onOpenMaterial = { item -> openMaterialDetails(item, tab = 0) },
                     onRequestQuote = { item -> openMaterialDetails(item, tab = 0) }
@@ -216,6 +245,10 @@ fun ReLoopAppRoot() {
                             onBack = { currentScreen = previousScreen },
                             onViewPassportFull = {
                                 navigateTo(AppDestination.PASSPORTS)
+                            },
+                            onOpenMap = { matId ->
+                                mapFocusMaterialId = matId
+                                navigateTo(AppDestination.MAP)
                             }
                         )
                     } ?: run {
@@ -257,7 +290,7 @@ fun ReLoopBottomBar(
             val navItems = listOf(
                 Triple(AppDestination.HOME, Icons.Default.Home, "Home"),
                 Triple(AppDestination.EXPLORE, Icons.Default.Search, "Explore"),
-                Triple(AppDestination.LIST_MATERIAL, Icons.Default.AddCircleOutline, "List"),
+                Triple(AppDestination.MAP, Icons.Default.Map, "Map"),
                 Triple(AppDestination.PASSPORTS, Icons.Default.QrCode2, "Passports"),
                 Triple(AppDestination.PROFILE, Icons.Default.PersonOutline, "Account")
             )
@@ -282,9 +315,9 @@ fun ReLoopBottomBar(
                         )
                     },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = BrandForest,
-                        selectedTextColor = BrandForest,
-                        indicatorColor = BrandMintBg,
+                        selectedIconColor = BrandCobalt,
+                        selectedTextColor = BrandCobalt,
+                        indicatorColor = BrandCobaltBg,
                         unselectedIconColor = TextMuted,
                         unselectedTextColor = TextMuted
                     )

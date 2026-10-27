@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,11 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.debuggers.reloop.data.model.*
 import com.debuggers.reloop.data.repository.MaterialRepository
 import com.debuggers.reloop.ui.theme.*
@@ -116,6 +119,19 @@ fun ReLoopTopBar(
                         )
                         Icon(Icons.Default.ArrowDropDown, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                     }
+                }
+
+                // Map Quick Access Button
+                IconButton(
+                    onClick = onLocationClick,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Map,
+                        contentDescription = "Industrial Corridor Map",
+                        tint = BrandCobalt,
+                        modifier = Modifier.size(19.dp)
+                    )
                 }
 
                 // Cloud Status Dot
@@ -334,201 +350,370 @@ fun SupplierPortalCard(
 }
 
 /**
- * Realistic B2B product listing card (IndiaMART / Amazon Business style) without AI clutter.
+ * Modern Regional Materials Transit Corridor Banner with direct one-tap interactive map access.
+ */
+@Composable
+fun RegionalCorridorBanner(
+    activeHubsCount: Int = 12,
+    activeLotsCount: Int,
+    onOpenMap: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = BrandNavy,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, BrandCobalt.copy(alpha = 0.3f)),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpenMap)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    Surface(
+                        color = Color.White.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Map, contentDescription = null, tint = BrandEmeraldLight, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                    Text(
+                        text = "NORTH INDIA INDUSTRIAL CORRIDOR",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandEmeraldLight,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+
+                Surface(
+                    color = Color.White.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(BrandEmeraldLight))
+                        Text(
+                            text = "LIVE SATELLITE MAP",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    text = "Punjab, Haryana & NCR Materials Network",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Text(
+                    text = "Explore $activeLotsCount active industrial lots and procurement demands mapped across $activeHubsCount regional clusters.",
+                    fontSize = 11.5.sp,
+                    color = Color.White.copy(alpha = 0.8f),
+                    lineHeight = 16.sp
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    listOf("Ludhiana", "Mandi Gobindgarh", "Rajpura", "Panipat", "Baddi").take(4).forEach { hub ->
+                        Surface(
+                            color = Color.White.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = hub,
+                                fontSize = 10.sp,
+                                color = Color.White.copy(alpha = 0.9f),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = "View Map",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Realistic B2B product listing card (Amazon Business / IndiaMART style) with real industrial photography and one-tap Map integration.
  */
 @Composable
 fun MaterialListingCard(
     item: MaterialItem,
     onClick: () -> Unit,
     onRequestQuote: () -> Unit,
+    onViewOnMap: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, ReLoopBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Category tag and verification status
+            // Main Top Section: Visual Photo Thumbnail on Left + Core Details on Right
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top
             ) {
-                Text(
-                    text = item.category.uppercase(),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = BrandForest,
-                    letterSpacing = 0.5.sp
-                )
+                // High-resolution visual product photo thumbnail with badges
+                Box(
+                    modifier = Modifier
+                        .size(width = 108.dp, height = 112.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(ReLoopSurfaceSubtle)
+                ) {
+                    AsyncImage(
+                        model = item.imageUrl,
+                        contentDescription = item.materialName,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
 
-                if (item.isVerifiedListing) {
-                    Surface(
-                        color = StatusVerifiedBg,
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    // Overlaid Verification Pill on top-start
+                    if (item.isVerifiedListing) {
+                        Surface(
+                            color = StatusVerified,
+                            shape = RoundedCornerShape(bottomEnd = 6.dp),
+                            modifier = Modifier.align(Alignment.TopStart)
                         ) {
-                            Icon(Icons.Default.Verified, null, tint = StatusVerified, modifier = Modifier.size(11.dp))
+                            Row(
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Icon(Icons.Default.Verified, null, tint = Color.White, modifier = Modifier.size(10.dp))
+                                Text(
+                                    text = "VERIFIED",
+                                    color = Color.White,
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.3.sp
+                                )
+                            }
+                        }
+                    } else {
+                        Surface(
+                            color = StatusDeclared,
+                            shape = RoundedCornerShape(bottomEnd = 6.dp),
+                            modifier = Modifier.align(Alignment.TopStart)
+                        ) {
                             Text(
-                                text = "VERIFIED LOT",
-                                color = StatusVerified,
-                                fontSize = 9.sp,
+                                text = "DECLARED",
+                                color = Color.White,
+                                fontSize = 8.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.4.sp
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                             )
                         }
                     }
-                } else {
+
+                    // Chemical/Material Symbol Badge on bottom-end
                     Surface(
-                        color = StatusDeclaredBg,
-                        shape = RoundedCornerShape(4.dp)
+                        color = Color.Black.copy(alpha = 0.65f),
+                        shape = RoundedCornerShape(topStart = 6.dp),
+                        modifier = Modifier.align(Alignment.BottomEnd)
                     ) {
                         Text(
-                            text = "SELLER DECLARED",
-                            color = StatusDeclared,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            letterSpacing = 0.4.sp
+                            text = item.symbol,
+                            color = BrandEmeraldLight,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                 }
-            }
 
-            // Material Title and Seller
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Surface(
-                    color = BrandMintBg,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.size(42.dp)
+                // Middle/Right Content Column
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = when (item.category) {
-                                "Metals" -> Icons.Default.PrecisionManufacturing
-                                "Minerals & By-Products" -> Icons.Default.Factory
-                                "Plastics" -> Icons.Default.Recycling
-                                "Construction" -> Icons.Default.Foundation
-                                "Chemicals" -> Icons.Default.Science
-                                "Paper" -> Icons.Default.Description
-                                else -> Icons.Default.Inventory2
-                            },
-                            contentDescription = null,
-                            tint = BrandForest,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
+                    // Category Tag
+                    Text(
+                        text = item.category.uppercase(),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandCobalt,
+                        letterSpacing = 0.4.sp
+                    )
 
-                Column(Modifier.weight(1f)) {
+                    // Material Name
                     Text(
                         text = item.materialName,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         color = TextDark,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 19.sp
                     )
-                    Text(
-                        text = "${item.sellerName} · ${item.displayLocation}",
-                        fontSize = 12.sp,
-                        color = TextMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
 
-            // Specification Clean Bullet
-            item.grade?.let { gr ->
-                Text(
-                    text = "Specification: ${gr.removePrefix("Grade: ").removePrefix("Fineness: ")}",
-                    fontSize = 12.sp,
-                    color = TextDark,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                    // Seller Name & City with Location Pin
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(Icons.Default.LocationOn, null, tint = TextSubtle, modifier = Modifier.size(12.dp))
+                        Text(
+                            text = "${item.sellerName} · ${item.displayLocation}",
+                            fontSize = 11.5.sp,
+                            color = TextMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    // Specification bullet
+                    item.grade?.let { gr ->
+                        Text(
+                            text = "Spec: ${gr.removePrefix("Grade: ").removePrefix("Fineness: ")}",
+                            fontSize = 11.5.sp,
+                            color = TextDark,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Spacer(Modifier.height(2.dp))
+
+                    // Price & Stock Available Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Column {
+                            Text(
+                                text = item.priceDisplay,
+                                fontSize = 15.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = BrandNavy
+                            )
+                            Text(
+                                text = item.pricingBasis,
+                                fontSize = 10.sp,
+                                color = TextMuted
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = item.displayQuantity,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextDark
+                            )
+                            Text(
+                                text = item.availabilityStatus,
+                                fontSize = 10.sp,
+                                color = if (item.isVerifiedListing) StatusVerified else TextMuted
+                            )
+                        }
+                    }
+                }
             }
 
             HorizontalDivider(color = ReLoopBorder, thickness = 0.5.dp)
 
-            // Commercial Row: Price on left, Quantity on right
+            // Action Row: "Request Quote" (Primary) + "Map" (Direct plant map locator) + "Details ➔"
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = item.priceDisplay,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = BrandForest
-                    )
-                    Text(
-                        text = item.pricingBasis,
-                        fontSize = 10.5.sp,
-                        color = TextMuted
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = item.displayQuantity,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextDark
-                    )
-                    Text(
-                        text = item.availabilityStatus,
-                        fontSize = 10.5.sp,
-                        color = StatusVerified
-                    )
-                }
-            }
-
-            // Compact Action Row: "Request Quote" primary + "Details ➔"
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(
                     onClick = onRequestQuote,
-                    modifier = Modifier.weight(1f).height(38.dp),
+                    modifier = Modifier.weight(1.3f).height(36.dp),
                     shape = RoundedCornerShape(6.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandForest)
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandCobalt),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
                 ) {
-                    Text("Request Quote", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Icon(Icons.AutoMirrored.Filled.Send, null, modifier = Modifier.size(13.dp), tint = Color.White)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Request Quote", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                }
+
+                if (onViewOnMap != null) {
+                    OutlinedButton(
+                        onClick = onViewOnMap,
+                        modifier = Modifier.height(36.dp),
+                        shape = RoundedCornerShape(6.dp),
+                        border = BorderStroke(1.dp, ReLoopBorder),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                    ) {
+                        Icon(Icons.Default.Place, null, modifier = Modifier.size(14.dp), tint = BrandCobalt)
+                        Spacer(Modifier.width(3.dp))
+                        Text("Map", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = TextDark)
+                    }
                 }
 
                 OutlinedButton(
                     onClick = onClick,
-                    modifier = Modifier.height(38.dp),
+                    modifier = Modifier.height(36.dp),
                     shape = RoundedCornerShape(6.dp),
                     border = BorderStroke(1.dp, ReLoopBorder),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                 ) {
-                    Text("Details", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = TextDark)
+                    Text("Details", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = TextDark)
                     Spacer(Modifier.width(2.dp))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(13.dp), tint = TextMuted)
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(12.dp), tint = TextMuted)
                 }
             }
         }

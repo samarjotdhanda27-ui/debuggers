@@ -24,9 +24,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.debuggers.reloop.data.model.MaterialItem
 import com.debuggers.reloop.data.model.RequirementItem
 import com.debuggers.reloop.ui.theme.*
@@ -42,12 +45,18 @@ sealed class MapFacilityMarker {
 fun InteractiveMapScreen(
     materials: List<MaterialItem>,
     requirements: List<RequirementItem>,
+    initialMaterialId: String? = null,
     onBack: () -> Unit,
     onOpenMaterial: (MaterialItem) -> Unit,
     onRequestQuote: (MaterialItem) -> Unit
 ) {
     var selectedFilter by remember { mutableStateOf("All Hubs") }
-    var selectedMarker by remember { mutableStateOf<MapFacilityMarker?>(materials.firstOrNull()?.let { MapFacilityMarker.SellerMarker(it) }) }
+    var selectedMarker by remember {
+        mutableStateOf<MapFacilityMarker?>(
+            initialMaterialId?.let { id -> materials.find { it.id == id } }?.let { MapFacilityMarker.SellerMarker(it) }
+                ?: materials.firstOrNull()?.let { MapFacilityMarker.SellerMarker(it) }
+        )
+    }
 
     // Coordinates bounding box for Punjab, Haryana & NCR
     val minLat = 28.3
@@ -56,8 +65,18 @@ fun InteractiveMapScreen(
     val maxLon = 77.4
 
     // Map gesture state
-    var scale by remember { mutableStateOf(1f) }
+    var scale by remember { mutableStateOf(if (initialMaterialId != null) 1.6f else 1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
+
+    LaunchedEffect(initialMaterialId) {
+        if (initialMaterialId != null) {
+            val mat = materials.find { it.id == initialMaterialId }
+            if (mat != null) {
+                selectedMarker = MapFacilityMarker.SellerMarker(mat)
+                scale = 1.7f
+            }
+        }
+    }
 
     val transformState = rememberTransformableState { zoomChange, offsetChange, _ ->
         scale = (scale * zoomChange).coerceIn(0.85f, 3.5f)
@@ -310,6 +329,56 @@ fun InteractiveMapScreen(
             }
         }
 
+        // Floating Map Controls (Zoom In, Zoom Out, Reset Center)
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Surface(
+                color = Color(0xFF0F172A).copy(alpha = 0.9f),
+                shape = CircleShape,
+                border = BorderStroke(1.dp, Color(0xFF334155)),
+                modifier = Modifier
+                    .size(42.dp)
+                    .clickable { scale = (scale * 1.35f).coerceAtMost(3.5f) }
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Add, contentDescription = "Zoom In", tint = Color.White, modifier = Modifier.size(20.dp))
+                }
+            }
+
+            Surface(
+                color = Color(0xFF0F172A).copy(alpha = 0.9f),
+                shape = CircleShape,
+                border = BorderStroke(1.dp, Color(0xFF334155)),
+                modifier = Modifier
+                    .size(42.dp)
+                    .clickable { scale = (scale / 1.35f).coerceAtLeast(0.85f) }
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Remove, contentDescription = "Zoom Out", tint = Color.White, modifier = Modifier.size(20.dp))
+                }
+            }
+
+            Surface(
+                color = Color(0xFF0F172A).copy(alpha = 0.9f),
+                shape = CircleShape,
+                border = BorderStroke(1.dp, Color(0xFF334155)),
+                modifier = Modifier
+                    .size(42.dp)
+                    .clickable {
+                        scale = 1f
+                        offset = Offset.Zero
+                    }
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.MyLocation, contentDescription = "Recenter", tint = BrandEmeraldLight, modifier = Modifier.size(18.dp))
+                }
+            }
+        }
+
         // Selected Facility Detail Card (Anchored at Bottom)
         selectedMarker?.let { marker ->
             Card(
@@ -321,56 +390,87 @@ fun InteractiveMapScreen(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 border = BorderStroke(1.dp, ReLoopBorder),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
             ) {
                 when (marker) {
                     is MapFacilityMarker.SellerMarker -> {
                         val item = marker.item
                         Column(
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier.padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                // Thumbnail Photo
+                                Box(
+                                    modifier = Modifier
+                                        .size(68.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(ReLoopSurfaceSubtle)
                                 ) {
-                                    Surface(color = StatusVerifiedBg, shape = RoundedCornerShape(4.dp)) {
-                                        Text(
-                                            text = "MATERIAL LOT",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
+                                    AsyncImage(
+                                        model = item.imageUrl,
+                                        contentDescription = item.materialName,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                    if (item.isVerifiedListing) {
+                                        Surface(
                                             color = StatusVerified,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
+                                            shape = RoundedCornerShape(bottomEnd = 4.dp),
+                                            modifier = Modifier.align(Alignment.TopStart)
+                                        ) {
+                                            Text(
+                                                text = "VERIFIED",
+                                                color = Color.White,
+                                                fontSize = 7.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                            )
+                                        }
                                     }
-                                    Text(item.category.uppercase(), fontSize = 10.sp, color = TextMuted, fontWeight = FontWeight.SemiBold)
                                 }
 
-                                Text(
-                                    text = item.priceDisplay,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = BrandPrimary
-                                )
+                                Column(Modifier.weight(1f)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(item.category.uppercase(), fontSize = 9.5.sp, color = BrandCobalt, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            text = item.priceDisplay,
+                                            fontSize = 14.5.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = BrandNavy
+                                        )
+                                    }
+                                    Text(
+                                        text = item.materialName,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextDark,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "${item.sellerName} · ${item.displayLocation}",
+                                        fontSize = 11.5.sp,
+                                        color = TextMuted,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "${item.displayQuantity} available · ${item.availabilityStatus}",
+                                        fontSize = 10.5.sp,
+                                        color = StatusVerified,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
                             }
-
-                            Text(
-                                text = item.materialName,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextDark
-                            )
-
-                            Text(
-                                text = "${item.sellerName} · ${item.displayLocation} (%.3f°N, %.3f°E)".format(item.latitude, item.longitude),
-                                fontSize = 12.sp,
-                                color = TextMuted
-                            )
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -378,20 +478,20 @@ fun InteractiveMapScreen(
                             ) {
                                 Button(
                                     onClick = { onOpenMaterial(item) },
-                                    modifier = Modifier.weight(1f).height(38.dp),
+                                    modifier = Modifier.weight(1f).height(36.dp),
                                     shape = RoundedCornerShape(6.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
+                                    colors = ButtonDefaults.buttonColors(containerColor = BrandCobalt)
                                 ) {
-                                    Text("View Details", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                                    Text("View Details", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
 
                                 OutlinedButton(
                                     onClick = { onRequestQuote(item) },
-                                    modifier = Modifier.weight(1f).height(38.dp),
+                                    modifier = Modifier.weight(1f).height(36.dp),
                                     shape = RoundedCornerShape(6.dp),
                                     border = BorderStroke(1.dp, ReLoopBorder)
                                 ) {
-                                    Text("Request Quote", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = TextDark)
+                                    Text("Request Quote", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextDark)
                                 }
                             }
                         }

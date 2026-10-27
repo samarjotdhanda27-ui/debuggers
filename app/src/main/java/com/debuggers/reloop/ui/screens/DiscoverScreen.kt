@@ -34,7 +34,7 @@ fun DiscoverScreen(
     materials: List<MaterialItem>,
     onOpenMaterial: (MaterialItem) -> Unit,
     onViewPassport: (MaterialItem) -> Unit,
-    onOpenMap: (() -> Unit)? = null
+    onOpenMap: ((String?) -> Unit)? = null
 ) {
     var query by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
@@ -177,15 +177,15 @@ fun DiscoverScreen(
                         // Hub Map Button
                         onOpenMap?.let { openMap ->
                             OutlinedButton(
-                                onClick = openMap,
+                                onClick = { openMap(null) },
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                border = BorderStroke(1.dp, BrandPrimary.copy(alpha = 0.5f)),
-                                colors = ButtonDefaults.outlinedButtonColors(containerColor = BrandMintBg)
+                                border = BorderStroke(1.dp, BrandCobalt.copy(alpha = 0.5f)),
+                                colors = ButtonDefaults.outlinedButtonColors(containerColor = BrandCobaltBg)
                             ) {
-                                Icon(Icons.Default.Map, null, modifier = Modifier.size(13.dp), tint = BrandPrimary)
+                                Icon(Icons.Default.Map, null, modifier = Modifier.size(13.dp), tint = BrandCobalt)
                                 Spacer(Modifier.width(4.dp))
-                                Text("Map", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = BrandPrimary)
+                                Text("Map View", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = BrandCobalt)
                             }
                         }
 
@@ -338,7 +338,8 @@ fun DiscoverScreen(
                         MaterialListingCard(
                             item = item,
                             onClick = { onOpenMaterial(item) },
-                            onRequestQuote = { materialForQuote = item }
+                            onRequestQuote = { materialForQuote = item },
+                            onViewOnMap = { onOpenMap?.invoke(item.id) }
                         )
                     }
                 }

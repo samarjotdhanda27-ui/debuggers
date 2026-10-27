@@ -86,6 +86,31 @@ data class MaterialItem(
     val isVerifiedListing: Boolean
         get() = !isSynthetic
 
+    val imageUrl: String
+        get() {
+            val custom = properties["image_url"]?.toString() ?: properties["image"]?.toString()
+            if (!custom.isNullOrBlank()) return custom
+
+            val name = materialName.lowercase()
+            val cat = category.lowercase()
+            return when {
+                name.contains("fly ash") || name.contains("ash") || name.contains("slag") || name.contains("cement") || cat.contains("mineral") ->
+                    "https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=600&q=80"
+                name.contains("steel") || name.contains("scrap") || name.contains("metal") || name.contains("iron") || cat.contains("metal") ->
+                    "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=600&q=80"
+                name.contains("sand") || name.contains("foundry") || name.contains("aggregate") || name.contains("concrete") || cat.contains("construction") ->
+                    "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=600&q=80"
+                name.contains("plastic") || name.contains("hdpe") || name.contains("polymer") || name.contains("pet") || cat.contains("plastic") ->
+                    "https://images.unsplash.com/photo-1605600659908-0ef719419d41?auto=format&fit=crop&w=600&q=80"
+                name.contains("paper") || name.contains("cardboard") || name.contains("occ") || cat.contains("paper") ->
+                    "https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=600&q=80"
+                name.contains("chemical") || name.contains("acid") || name.contains("solvent") || cat.contains("chemical") ->
+                    "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=600&q=80"
+                else ->
+                    "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=600&q=80"
+            }
+        }
+
     companion object {
         fun fromJson(obj: JSONObject): MaterialItem {
             val docs = mutableListOf<String>()
@@ -148,6 +173,25 @@ data class RequirementItem(
 
     val displayLocation: String
         get() = if (city.isNotEmpty() && state.isNotEmpty()) "$city, $state" else city.ifEmpty { state }.ifEmpty { "India" }
+
+    val imageUrl: String
+        get() {
+            val name = requiredMaterial.lowercase()
+            return when {
+                name.contains("fly ash") || name.contains("ash") || name.contains("cement") || name.contains("slag") ->
+                    "https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=600&q=80"
+                name.contains("steel") || name.contains("scrap") || name.contains("metal") ->
+                    "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=600&q=80"
+                name.contains("sand") || name.contains("foundry") || name.contains("concrete") ->
+                    "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=600&q=80"
+                name.contains("plastic") || name.contains("hdpe") || name.contains("polymer") ->
+                    "https://images.unsplash.com/photo-1605600659908-0ef719419d41?auto=format&fit=crop&w=600&q=80"
+                name.contains("paper") || name.contains("cardboard") ->
+                    "https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=600&q=80"
+                else ->
+                    "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=600&q=80"
+            }
+        }
 
     companion object {
         fun fromJson(obj: JSONObject): RequirementItem {
