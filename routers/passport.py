@@ -59,7 +59,7 @@ def get_passport_qr(passport_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Passport not found")
 
     # The QR code will encode a URL that opens this passport's record
-    passport_url = f"http://127.0.0.1:8000/passport/{passport_id}"
+   passport_url = f"https://reloop-ui.onrender.com/passport/{passport_id}"
 
     qr_image = generate_qr_image(passport_url)
 
