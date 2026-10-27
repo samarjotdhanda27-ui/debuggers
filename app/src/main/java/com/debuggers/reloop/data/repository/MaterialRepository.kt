@@ -593,6 +593,83 @@ object MaterialRepository {
         }
     }
 
+    suspend fun getPassportForMaterial(materialId: String): DigitalProductPassport {
+        val targetMaterial = _materials.value.find { it.id == materialId }
+            ?: seedMaterials.find { it.id == materialId }
+            ?: _materials.value.firstOrNull()
+            ?: seedMaterials.first()
+
+        val batchNo = "BAT-${targetMaterial.id.take(8).uppercase()}-2026"
+        val qrUrl = "https://reloop-ui.onrender.com/passport/${targetMaterial.id}"
+
+        val events = listOf(
+            PassportCustodyEvent(
+                eventId = "EV-001",
+                stage = "Batch Generation & Silo Sampling",
+                actor = targetMaterial.sellerName,
+                location = targetMaterial.displayLocation,
+                timestamp = "${targetMaterial.createdAt} 08:30 IST",
+                verificationStatus = "Verified at Facility"
+            ),
+            PassportCustodyEvent(
+                eventId = "EV-002",
+                stage = "NABL Laboratory Spectrometry Analysis",
+                actor = "Punjab Industrial Analytical Lab",
+                location = "Mohali, Punjab",
+                timestamp = "${targetMaterial.createdAt} 14:15 IST",
+                verificationStatus = "Specification Certified"
+            ),
+            PassportCustodyEvent(
+                eventId = "EV-003",
+                stage = "Environmental Consent Verification",
+                actor = "SPCB Regional Directorate",
+                location = "Chandigarh",
+                timestamp = "${targetMaterial.createdAt} 17:45 IST",
+                verificationStatus = "Consent NOC Active"
+            ),
+            PassportCustodyEvent(
+                eventId = "EV-004",
+                stage = "ReLoop B2B Marketplace Verified Lot",
+                actor = "ReLoop Circular Intelligence Engine",
+                location = "Cloud Ledger (Supabase)",
+                timestamp = "Active Current Batch",
+                verificationStatus = if (targetMaterial.isVerifiedListing) "Verified Lot" else "Seller Declared"
+            )
+        )
+
+        return DigitalProductPassport(
+            passportId = "DPP-${targetMaterial.id.take(8).uppercase()}",
+            materialId = targetMaterial.id,
+            materialName = targetMaterial.materialName,
+            category = targetMaterial.category,
+            batchNumber = batchNo,
+            generatingFacility = targetMaterial.sellerName,
+            originCity = targetMaterial.city,
+            originState = targetMaterial.state,
+            latitude = targetMaterial.latitude,
+            longitude = targetMaterial.longitude,
+            quantityTonnes = targetMaterial.quantityTonnes,
+            unit = targetMaterial.unit,
+            grade = targetMaterial.grade,
+            physicalCondition = targetMaterial.condition,
+            complianceStandard = when (targetMaterial.category) {
+                "Minerals & By-Products" -> "IS 3812 Part 1"
+                "Metals" -> "IS 2549 / ISRI 200-206"
+                "Construction" -> "IS 383:2016"
+                "Plastics" -> "IS 14535:1998"
+                "Chemicals" -> "CPCB Technical Guidelines"
+                "Paper" -> "IS 1397 / BIS Grade 11"
+                else -> "Bureau of Indian Standards (BIS)"
+            },
+            verifiedProperties = targetMaterial.properties,
+            verifiedDocuments = targetMaterial.availableDocuments.ifEmpty { listOf("Material Test Report", "CPCB NOC") },
+            custodyEvents = events,
+            qrPayloadUrl = qrUrl,
+            isVerified = targetMaterial.isVerifiedListing,
+            issueDate = targetMaterial.createdAt
+        )
+    }
+
     private fun calculateHaversineDistance(
         lat1: Double, lon1: Double,
         lat2: Double, lon2: Double

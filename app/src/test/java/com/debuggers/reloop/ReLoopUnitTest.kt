@@ -141,4 +141,15 @@ class ReLoopUnitTest {
         assertEquals("300 tonnes", req.displayQuantity)
         assertEquals("Bathinda, Punjab", req.displayLocation)
     }
+
+    @Test
+    fun testDigitalProductPassportRetrievalByUUID() = kotlinx.coroutines.runBlocking {
+        val passport = MaterialRepository.getPassportForMaterial("15ba8dc8-4022-43b2-a2ca-d301e70d22b1")
+        assertNotNull(passport)
+        assertEquals("15ba8dc8-4022-43b2-a2ca-d301e70d22b1", passport.materialId)
+        assertTrue(passport.passportId.startsWith("DPP-"))
+        assertEquals("https://reloop-ui.onrender.com/passport/15ba8dc8-4022-43b2-a2ca-d301e70d22b1", passport.qrPayloadUrl)
+        assertEquals(4, passport.custodyEvents.size)
+        assertEquals("IS 3812 Part 1", passport.complianceStandard)
+    }
 }

@@ -214,4 +214,16 @@ object ReLoopApiClient {
             else -> Pair(false, "Server error ($code): ${response ?: "Unknown error"}")
         }
     }
+
+    suspend fun getPassportByMaterialId(materialId: String): JSONObject? {
+        val (code, response) = executeGet("/passport/$materialId", auth = true)
+        if (code in 200..299 && response != null) {
+            return try {
+                JSONObject(response)
+            } catch (e: Exception) {
+                null
+            }
+        }
+        return null
+    }
 }

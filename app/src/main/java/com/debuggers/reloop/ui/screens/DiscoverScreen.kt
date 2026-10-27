@@ -33,7 +33,8 @@ import com.debuggers.reloop.ui.theme.*
 fun DiscoverScreen(
     materials: List<MaterialItem>,
     onOpenMaterial: (MaterialItem) -> Unit,
-    onViewPassport: (MaterialItem) -> Unit
+    onViewPassport: (MaterialItem) -> Unit,
+    onOpenMap: (() -> Unit)? = null
 ) {
     var query by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
@@ -170,6 +171,21 @@ fun DiscoverScreen(
                                         }
                                     )
                                 }
+                            }
+                        }
+
+                        // Hub Map Button
+                        onOpenMap?.let { openMap ->
+                            OutlinedButton(
+                                onClick = openMap,
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                border = BorderStroke(1.dp, BrandPrimary.copy(alpha = 0.5f)),
+                                colors = ButtonDefaults.outlinedButtonColors(containerColor = BrandMintBg)
+                            ) {
+                                Icon(Icons.Default.Map, null, modifier = Modifier.size(13.dp), tint = BrandPrimary)
+                                Spacer(Modifier.width(4.dp))
+                                Text("Map", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = BrandPrimary)
                             }
                         }
 

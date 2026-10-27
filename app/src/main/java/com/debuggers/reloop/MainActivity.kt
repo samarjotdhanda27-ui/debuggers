@@ -55,6 +55,7 @@ class MainActivity : ComponentActivity() {
 enum class AppDestination {
     HOME,
     EXPLORE,
+    MAP,
     LIST_MATERIAL,
     PASSPORTS,
     PROFILE,
@@ -85,7 +86,9 @@ fun ReLoopAppRoot() {
 
     // Hardware & Gesture Back Navigation Handling
     BackHandler(enabled = currentScreen != AppDestination.HOME) {
-        if (currentScreen == AppDestination.MATERIAL_DETAIL || currentScreen == AppDestination.POST_REQUIREMENT) {
+        if (currentScreen == AppDestination.MATERIAL_DETAIL || 
+            currentScreen == AppDestination.POST_REQUIREMENT ||
+            currentScreen == AppDestination.MAP) {
             currentScreen = previousScreen
         } else {
             currentScreen = AppDestination.HOME
@@ -118,7 +121,7 @@ fun ReLoopAppRoot() {
                 ReLoopTopBar(
                     serverHealth = serverHealth,
                     currentLocation = "Punjab Hub",
-                    onLocationClick = { navigateTo(AppDestination.EXPLORE) },
+                    onLocationClick = { navigateTo(AppDestination.MAP) },
                     onHealthClick = { showDiagnosticsDialog = true },
                     onProfileClick = { navigateTo(AppDestination.PROFILE) }
                 )
@@ -159,7 +162,16 @@ fun ReLoopAppRoot() {
                 AppDestination.EXPLORE -> DiscoverScreen(
                     materials = materials,
                     onOpenMaterial = { item -> openMaterialDetails(item, tab = 0) },
-                    onViewPassport = { item -> openMaterialDetails(item, tab = 3) }
+                    onViewPassport = { item -> openMaterialDetails(item, tab = 3) },
+                    onOpenMap = { navigateTo(AppDestination.MAP) }
+                )
+
+                AppDestination.MAP -> InteractiveMapScreen(
+                    materials = materials,
+                    requirements = requirements,
+                    onBack = { currentScreen = previousScreen },
+                    onOpenMaterial = { item -> openMaterialDetails(item, tab = 0) },
+                    onRequestQuote = { item -> openMaterialDetails(item, tab = 0) }
                 )
 
                 AppDestination.LIST_MATERIAL -> ListMaterialScreen(

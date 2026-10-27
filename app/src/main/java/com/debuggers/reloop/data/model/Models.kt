@@ -339,6 +339,42 @@ data class EnquiryQuoteRequest(
 )
 
 /**
+ * Digital Product Passport model retrieved by Material UUID.
+ */
+data class DigitalProductPassport(
+    val passportId: String,
+    val materialId: String,
+    val materialName: String,
+    val category: String,
+    val batchNumber: String,
+    val generatingFacility: String,
+    val originCity: String,
+    val originState: String,
+    val latitude: Double,
+    val longitude: Double,
+    val quantityTonnes: Double,
+    val unit: String,
+    val grade: String?,
+    val physicalCondition: String?,
+    val complianceStandard: String?,
+    val verifiedProperties: Map<String, Any>,
+    val verifiedDocuments: List<String>,
+    val custodyEvents: List<PassportCustodyEvent>,
+    val qrPayloadUrl: String,
+    val isVerified: Boolean,
+    val issueDate: String
+)
+
+data class PassportCustodyEvent(
+    val eventId: String,
+    val stage: String,
+    val actor: String,
+    val location: String,
+    val timestamp: String,
+    val verificationStatus: String
+)
+
+/**
  * Server health information.
  */
 data class ServerHealth(

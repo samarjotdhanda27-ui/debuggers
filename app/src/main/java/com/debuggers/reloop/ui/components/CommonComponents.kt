@@ -536,6 +536,189 @@ fun MaterialListingCard(
 }
 
 /**
+ * ReLoop Match Intelligence Card.
+ * Displays:
+ * 1. AI Compatibility Score (0 - 100%)
+ * 2. Real-time Status Badge (e.g. HIGH MATCH · REGIONAL DEMAND)
+ * 3. Specific explanations/reasons for the match
+ * 4. Technical score breakdown points
+ */
+@Composable
+fun ReLoopIntelligenceCard(
+    compatibilityScore: Double,
+    statusText: String,
+    reasons: List<String>,
+    scoreBreakdown: ScoreBreakdown? = null,
+    onExploreMatches: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, BrandPrimary.copy(alpha = 0.25f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Header: Sparkle + Label + Score Pill
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Surface(
+                        color = BrandMintBg,
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.size(26.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = BrandPrimary, modifier = Modifier.size(15.dp))
+                        }
+                    }
+                    Text(
+                        text = "CIRCULAR INTELLIGENCE",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandPrimary,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+
+                Surface(
+                    color = if (compatibilityScore >= 80) StatusVerifiedBg else StatusDeclaredBg,
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(0.5.dp, if (compatibilityScore >= 80) StatusVerified.copy(alpha = 0.4f) else StatusDeclared.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        text = "${compatibilityScore.toInt()}% FIT",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (compatibilityScore >= 80) StatusVerified else StatusDeclared,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+
+            // Status Banner
+            Surface(
+                color = ReLoopSurfaceSubtle,
+                shape = RoundedCornerShape(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .background(if (compatibilityScore >= 80) StatusVerified else StatusDeclared, CircleShape)
+                    )
+                    Text(
+                        text = statusText.uppercase(),
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark,
+                        letterSpacing = 0.4.sp
+                    )
+                }
+            }
+
+            // Match Reasons Section
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "Key Compatibility Reasons:",
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextMuted
+                )
+
+                reasons.take(3).forEach { reason ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = BrandPrimary,
+                            modifier = Modifier
+                                .size(14.dp)
+                                .padding(top = 2.dp)
+                        )
+                        Text(
+                            text = reason,
+                            fontSize = 12.sp,
+                            color = TextDark,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+            }
+
+            // Score Breakdown Bars if available
+            scoreBreakdown?.let { sb ->
+                HorizontalDivider(color = ReLoopBorder, thickness = 0.5.dp)
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("Multi-Criteria Score Breakdown:", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = TextSubtle)
+                    BreakdownBar("Technical Specifications Fit", sb.propertyCompatibilityPoints, 35.0)
+                    BreakdownBar("Spatial & Transit Proximity", sb.proximityPoints, 25.0)
+                    BreakdownBar("Documentation & Regulatory Clearances", sb.documentationPoints, 25.0)
+                    BreakdownBar("Intake Volume Fulfillment", sb.quantityPoints, 15.0)
+                }
+            }
+
+            // Action to view detailed matches
+            if (onExploreMatches != null) {
+                Button(
+                    onClick = onExploreMatches,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp),
+                    shape = RoundedCornerShape(6.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
+                ) {
+                    Text("Explore Matching Buyer Facilities", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(13.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BreakdownBar(label: String, points: Double, maxPoints: Double) {
+    val progress = (points / maxPoints).coerceIn(0.0, 1.0).toFloat()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, fontSize = 11.sp, color = TextMuted, modifier = Modifier.weight(1f))
+        Text("${points.toInt()} / ${maxPoints.toInt()} pts", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = BrandPrimary)
+    }
+    LinearProgressIndicator(
+        progress = { progress },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(4.dp)
+            .clip(RoundedCornerShape(2.dp)),
+        color = BrandPrimary,
+        trackColor = ReLoopSurfaceSubtle
+    )
+}
+
+/**
  * Modern B2B Modal Bottom Sheet for Requesting a Quote (replaces clunky AlertDialog).
  */
 @OptIn(ExperimentalMaterial3Api::class)
