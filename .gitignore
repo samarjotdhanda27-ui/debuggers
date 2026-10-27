@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pyo
+reloop.db
+.env
+.vscode/
+*.egg-info/
