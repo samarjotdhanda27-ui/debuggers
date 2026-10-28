@@ -1,8 +1,5 @@
 import os
-
 from dotenv import load_dotenv
-from pymongo import MongoClient
-from pymongo.errors import PyMongoError
 
 load_dotenv()
 
@@ -11,11 +8,11 @@ _client = None
 
 def get_mongodb():
     global _client
+    from pymongo import MongoClient
 
     uri = os.getenv("MONGODB_URI")
-
     if not uri:
-        raise RuntimeError("MONGODB_URI is not configured")
+        raise RuntimeError("MONGODB_URI is not configured in .env")
 
     if _client is None:
         _client = MongoClient(
@@ -23,13 +20,20 @@ def get_mongodb():
             serverSelectionTimeoutMS=5000,
         )
 
-    return _client["reloop"]
+    db_name = os.getenv("DATABASE_NAME", "reloop")
+    return _client[db_name]
+
+
+def get_collection(collection_name: str):
+    db = get_mongodb()
+    return db[collection_name]
 
 
 def check_mongodb_connection():
     try:
+        from pymongo.errors import PyMongoError
         db = get_mongodb()
         db.command("ping")
         return True
-    except (PyMongoError, RuntimeError):
+    except Exception:
         return False
